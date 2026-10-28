@@ -34,13 +34,13 @@ npm run dev                 # http://localhost:3000/admin
 ```
 แก้ schema แล้วสร้าง migration ด้วย `npx prisma migrate dev --name <ชื่อ>`
 
-## Deploy — ServerKG (192.168.1.15) + cartag.kgarden.co.th
+## Deploy — ServerKG (`ServerKG.local`) + cartag.kgarden.co.th
 ใช้ขั้นตอนมาตรฐานของ KGF (build บนเครื่อง dev → ส่ง image ขึ้น server ผ่าน SSH) — port **8003**
 
 ### ครั้งแรก
 1. สร้าง DB บน server (ครั้งเดียว):
    ```bash
-   ssh server@192.168.1.15
+   ssh server@ServerKG.local
    docker exec -it kgf-postgres psql -U kgf -c "CREATE USER cartag WITH PASSWORD '<รหัสยาวๆ>';"
    docker exec -it kgf-postgres psql -U kgf -c "CREATE DATABASE cartag OWNER cartag;"
    ```

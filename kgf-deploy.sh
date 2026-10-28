@@ -14,7 +14,7 @@
 #  ครั้งแรกระบุ <app> [port]; ครั้งต่อไปในโฟลเดอร์เดิม รันแค่ ./kgf-deploy.sh deploy
 # =============================================================
 set -e
-SERVER=${KGF_SERVER:-server@192.168.1.15}     # นอกออฟฟิศ: KGF_SERVER=server@100.x.x.x ./kgf-deploy.sh ...
+SERVER=${KGF_SERVER:-server@ServerKG.local}   # ใช้ชื่อ Bonjour แทน IP (IP เคยเปลี่ยนจาก .15 เป็น .10) · นอกออฟฟิศ: KGF_SERVER=server@100.x.x.x ./kgf-deploy.sh ...
 CONF=.kgf-deploy
 CMD=$1; shift || true
 
