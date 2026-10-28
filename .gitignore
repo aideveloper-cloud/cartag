@@ -44,4 +44,6 @@ next-env.d.ts
 *.db-journal
 /uploads
 !.env.example
+!.env.server.example
+.kgf-deploy
 /data

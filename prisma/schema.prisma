@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -39,11 +39,19 @@ model Trip {
   mileageStart  Int       // เลขไมล์ก่อนเดินทาง
   mileageEnd    Int?      // เลขไมล์หลังเดินทาง (null = ยังไม่คืนรถ)
   returnedAt    DateTime? // วันที่ + เวลาคืนรถ
-  photoStart    String?   // ชื่อไฟล์รูปเลขไมล์ตอนออก (ใน uploads/)
-  photoEnd      String?   // ชื่อไฟล์รูปเลขไมล์ตอนคืน
+  photoStart    String?   // id ของ Photo: รูปเลขไมล์ตอนออก
+  photoEnd      String?   // id ของ Photo: รูปเลขไมล์ตอนคืน
   warnings      String?   // คำเตือนเลขไมล์ที่ผู้ใช้กดยืนยันผ่าน ให้แอดมินตรวจ
-  selfie        String?   // ชื่อไฟล์รูปหน้าผู้ยืม (ลบอัตโนมัติเมื่อครบ SELFIE_RETENTION_DAYS)
+  selfie        String?   // id ของ Photo: รูปหน้าผู้ยืม (ลบอัตโนมัติเมื่อครบ SELFIE_RETENTION_DAYS)
   createdAt     DateTime  @default(now())
 
   @@index([vehicleId, departedAt])
+}
+
+// เก็บรูปในฐานข้อมูล (ย่อจากมือถือแล้ว ~30–150KB/รูป) เพื่อให้ backup ของ Postgres ครอบคลุมรูปด้วย
+// และ container ไม่ต้องมี volume
+model Photo {
+  id        String   @id @default(uuid())
+  data      Bytes
+  createdAt DateTime @default(now())
 }

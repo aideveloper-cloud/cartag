@@ -1,34 +1,31 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { SELFIE_RETENTION_DAYS } from "./config";
 import { prisma } from "./db";
 
-export const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const MAX_BYTES = 10 * 1024 * 1024;
-const NAME_RE = /^[0-9a-f-]{36}\.jpg$/;
+const ID_RE = /^[0-9a-f-]{36}$/;
 
-// บันทึกรูปจากฟอร์ม คืนชื่อไฟล์ หรือ null ถ้าไม่ได้แนบ
+// บันทึกรูปจากฟอร์ม คืน id ของรูป หรือ null ถ้าไม่ได้แนบ
 export async function savePhoto(file: FormDataEntryValue | null): Promise<string | null> {
   if (!(file instanceof File) || file.size === 0) return null;
   if (!file.type.startsWith("image/")) throw new Error("ไฟล์แนบต้องเป็นรูปภาพ");
   if (file.size > MAX_BYTES) throw new Error("รูปมีขนาดใหญ่เกิน 10MB");
 
-  const name = `${crypto.randomUUID()}.jpg`;
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  await writeFile(path.join(UPLOAD_DIR, name), Buffer.from(await file.arrayBuffer()));
-  return name;
+  const photo = await prisma.photo.create({
+    data: { data: new Uint8Array(await file.arrayBuffer()) },
+    select: { id: true },
+  });
+  return photo.id;
 }
 
-export async function readPhoto(name: string) {
-  // กัน path traversal: ยอมรับเฉพาะชื่อที่ระบบสร้าง
-  if (!NAME_RE.test(name)) return null;
-  return readFile(path.join(UPLOAD_DIR, name)).catch(() => null);
+export async function readPhoto(id: string) {
+  if (!ID_RE.test(id)) return null;
+  const photo = await prisma.photo.findUnique({ where: { id } });
+  return photo?.data ?? null;
 }
 
-export async function deletePhotos(names: (string | null)[]) {
-  for (const name of names) {
-    if (name && NAME_RE.test(name)) await rm(path.join(UPLOAD_DIR, name), { force: true });
-  }
+export async function deletePhotos(ids: (string | null)[]) {
+  const valid = ids.filter((id): id is string => !!id && ID_RE.test(id));
+  if (valid.length) await prisma.photo.deleteMany({ where: { id: { in: valid } } });
 }
 
 // ลบรูปหน้าผู้ยืมที่เก่ากว่าระยะเวลาที่กำหนด

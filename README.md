@@ -4,9 +4,9 @@
 
 ## Stack
 - **Next.js 15** (App Router + Server Actions)
-- **Prisma + SQLite** (ใช้ migrations — เปลี่ยนเป็น PostgreSQL ได้)
+- **Prisma + PostgreSQL** (Postgres กลางบน ServerKG) — รูปเก็บในฐานข้อมูลด้วย จึงอยู่ใน backup รายวันของ server
 - **Tailwind CSS**, **qrcode**, **exceljs**
-- **Docker Compose + Caddy** สำหรับ deploy พร้อม HTTPS อัตโนมัติ
+- **Docker** + `kgf-deploy.sh` (มาตรฐาน deploy ของ KGF) + **Cloudflare Tunnel** สำหรับ HTTPS
 
 ## การทำงาน
 1. **สแกนตอนออก** → กรอกรหัสพนักงาน (ระบบแสดงชื่อ+แผนก และจำรหัสไว้ในมือถือ), สถานที่, เลขไมล์ (เติมให้จากครั้งล่าสุด), **ถ่ายรูปหน้า (บังคับ)**, รูปหน้าปัด (ไม่บังคับ)
@@ -25,62 +25,50 @@
 
 ## พัฒนาในเครื่อง
 ```bash
+colima start
+docker run -d --name cartag-db -p 5433:5432 -e POSTGRES_PASSWORD=dev postgres:16
 npm install
-cp .env.example .env        # แก้ค่าตามต้องการ
+cp .env.example .env
 npm run db:setup            # สร้างตาราง + เพิ่มรถ 5 คัน
 npm run dev                 # http://localhost:3000/admin
 ```
 แก้ schema แล้วสร้าง migration ด้วย `npx prisma migrate dev --name <ชื่อ>`
 
-## Deploy บน Mac Server + Cloudflare Tunnel (cartag.kgarden.co.th)
-ใช้ Cloudflare Tunnel: ไม่ต้องมี IP สาธารณะ ไม่ต้องเปิดพอร์ตที่ router และ Cloudflare จัดการ HTTPS ให้
+## Deploy — ServerKG (192.168.1.15) + cartag.kgarden.co.th
+ใช้ขั้นตอนมาตรฐานของ KGF (build บนเครื่อง dev → ส่ง image ขึ้น server ผ่าน SSH) — port **8003**
 
-### 1. เตรียม Mac
-```bash
-sudo pmset -a sleep 0 disksleep 0 autorestart 1   # ไม่หลับ + เปิดเองหลังไฟดับ
-```
-ติดตั้ง Node 22+ และ Homebrew ไว้ แล้ว clone โปรเจกต์
-
-### 2. ติดตั้งแอป
-```bash
-cp .env.example .env    # ตั้ง BASE_URL="https://cartag.kgarden.co.th" และ ADMIN_PASSWORD
-./deploy/mac/deploy.sh  # build + ติดตั้ง service (ขอรหัส sudo)
-```
-- แอปรันเป็น LaunchDaemon `th.co.kgarden.cartag` ที่ `127.0.0.1:3000` เริ่มเองตอนเปิดเครื่อง (ไม่ต้องล็อกอิน) และรีสตาร์ทเองถ้าล่ม
-- สำรองข้อมูลทุกคืน 02:00 ไปที่ `~/Backups/cartag` เก็บ 30 วัน (`deploy/mac/backup.sh`) — **ควรเปิด Time Machine ไปดิสก์ภายนอกด้วย**
-- ข้อมูลอยู่ที่ `data/app.db`, รูปที่ `uploads/`, log ที่ `data/app.log`
-- อัปเดตเวอร์ชัน: `git pull && ./deploy/mac/deploy.sh`
-
-### 3. Cloudflare Tunnel
-1. Cloudflare DNS → **ลบ A record `cartag` → 152.42.177.130**
-2. Cloudflare Zero Trust → Networks → Tunnels → **Create a tunnel** → Cloudflared → ตั้งชื่อ `cartag`
-3. เลือก macOS แล้วรันคำสั่งที่ได้บน Mac:
+### ครั้งแรก
+1. สร้าง DB บน server (ครั้งเดียว):
    ```bash
-   brew install cloudflared
-   sudo cloudflared service install <TOKEN>
+   ssh server@192.168.1.15
+   docker exec -it kgf-postgres psql -U kgf -c "CREATE USER cartag WITH PASSWORD '<รหัสยาวๆ>';"
+   docker exec -it kgf-postgres psql -U kgf -c "CREATE DATABASE cartag OWNER cartag;"
    ```
-4. Public hostname: `cartag.kgarden.co.th` → Service `HTTP` · `127.0.0.1:3000`
-5. เข้า `https://cartag.kgarden.co.th/admin` → เพิ่มพนักงาน → **พิมพ์ QR**
+2. บนเครื่อง dev: `cp .env.server.example .env.server` แล้วใส่รหัส DB, `ADMIN_PASSWORD` (ไฟล์นี้ไม่ถูก commit)
+3. `./kgf-deploy.sh deploy cartag 8003` — container ตั้งตารางและเพิ่มรถให้เองตอนเริ่ม
+4. Cloudflare Zero Trust → Tunnels → tunnel ที่รันบน ServerKG → **Public Hostname**:
+   `cartag.kgarden.co.th` → `HTTP` · `localhost:8003`
+   (ถ้า cloudflared รันเป็น container ในเครือข่าย `kgf` ให้ใช้ `cartag:8000` แทน)
+5. `https://cartag.kgarden.co.th/admin` → เพิ่มพนักงาน → **พิมพ์ QR**
+6. เพิ่ม `8003 | cartag (DB cartag) | Cloudflare Tunnel` ในทะเบียน Port ของ DEPLOY.md
 
-### คำสั่งดูแล
+### ครั้งต่อไป
 ```bash
-sudo launchctl kickstart -k system/th.co.kgarden.cartag   # รีสตาร์ทแอป
-tail -f data/app.log                                       # ดู log
-sudo launchctl bootout system/th.co.kgarden.cartag         # หยุดแอป
+./kgf-deploy.sh deploy      # build + ส่งขึ้น + migration อัตโนมัติ
+./kgf-deploy.sh logs        # ดู log
+./kgf-deploy.sh rollback    # ย้อนเวอร์ชัน (ตารางที่ migration เพิ่มไปแล้วไม่ถูกย้อน)
 ```
-
-### ทางเลือก: Docker / Linux VPS
-มี `Dockerfile` + `docker-compose.yml` (แอปเปิดที่ `127.0.0.1:3000`; ถ้าเครื่องไม่มี web server ใช้ `docker compose --profile caddy up -d --build` เพื่อเปิด Caddy + HTTPS) และ `deploy/Caddyfile` สำหรับต่อกับ Caddy ที่มีอยู่
+ข้อมูลทั้งหมด (รวมรูป) อยู่ใน Postgres → ไม่หายเมื่อ deploy ใหม่ และอยู่ใน backup 02:00 ของ server
 
 ## ตั้งค่า (.env)
 | ตัวแปร | ความหมาย | ค่าเริ่มต้น |
 |---|---|---|
 | `BASE_URL` | URL ที่ฝังใน QR | `http://localhost:3000` |
-| `DOMAIN` | โดเมนสำหรับ HTTPS (docker compose) | – |
+| `DATABASE_URL` | Postgres | – |
 | `ADMIN_PASSWORD` | รหัสผ่านแอดมิน | – |
 | `MAX_TRIP_KM` | ระยะทางที่ถือว่าผิดปกติ | 1000 |
 | `SELFIE_RETENTION_DAYS` | เก็บรูปหน้ากี่วัน | 180 |
 
 ## เพิ่ม/แก้ทะเบียนรถ
-- เพิ่ม: ต่อท้ายรายการใน `prisma/seed.mjs` แล้วรัน `node prisma/seed.mjs` (หรือรีสตาร์ท container)
-- แก้ทะเบียน: `npx prisma studio` → ตาราง Vehicle ช่อง `plate` (รหัสใน QR คือ `v1`, `v2`, ... จึงไม่ต้องพิมพ์ QR ใหม่)
+- เพิ่ม: ต่อท้ายรายการใน `prisma/seed.mjs` แล้ว `./kgf-deploy.sh deploy` (container เพิ่มรถให้ตอนเริ่ม)
+- แก้ทะเบียน: แก้ช่อง `plate` ในตาราง Vehicle ของ DB `cartag` (รหัสใน QR คือ `v1`, `v2`, ... จึงไม่ต้องพิมพ์ QR ใหม่)
