@@ -7,12 +7,16 @@ set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 LABEL="th.co.kgarden.cartag"
 BACKUP_LABEL="th.co.kgarden.cartag.backup"
-NODE_BIN="$(node -p process.execPath)"   # path จริงของ node (ไม่ใช่ path ชั่วคราวของ fnm/nvm)
+# path ของ node ที่ service จะใช้: Homebrew ใช้ symlink (/opt/homebrew/bin/node) ซึ่งไม่เปลี่ยนเมื่อ brew upgrade
+# ส่วน fnm ใช้ path ชั่วคราวต่อ shell จึงต้องใช้ path จริงแทน
+NODE_BIN="$(command -v node)"
+case "$NODE_BIN" in *fnm_multishells*) NODE_BIN="$(node -p process.execPath)" ;; esac
 PORT="${APP_PORT:-3000}"
 export DATABASE_URL="file:$APP_DIR/data/app.db"
 export NODE_ENV=production
 
 cd "$APP_DIR"
+node -e 'process.exit(+process.versions.node.split(".")[0] >= 20 ? 0 : 1)' || { echo "ต้องใช้ Node 20 ขึ้นไป (brew install node)"; exit 1; }
 [ -f .env ] || { echo "ไม่พบ .env — คัดลอกจาก .env.example แล้วตั้ง BASE_URL / ADMIN_PASSWORD ก่อน"; exit 1; }
 grep -q '^BASE_URL="https://' .env || echo "⚠️  BASE_URL ใน .env ยังไม่ใช่ https — QR ที่พิมพ์จะชี้ไปผิดที่"
 grep -q '^ADMIN_PASSWORD="\(admin1234\|change-me\)"' .env && { echo "เปลี่ยน ADMIN_PASSWORD ใน .env ก่อน"; exit 1; }
