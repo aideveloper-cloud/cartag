@@ -1,0 +1,11 @@
+# เพิ่มบล็อกนี้ต่อท้าย Caddyfile ที่มีอยู่บนเซิร์ฟเวอร์ (มักอยู่ที่ /etc/caddy/Caddyfile)
+# แล้วรัน: caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
+#
+# Cloudflare: SSL/TLS mode ต้องเป็น "Full (strict)" ไม่งั้นจะวนลูป redirect
+cartag.kgarden.co.th {
+	reverse_proxy 127.0.0.1:3000
+	# รูปจากมือถือถูกย่อแล้ว แต่เผื่อไว้
+	request_body {
+		max_size 15MB
+	}
+}

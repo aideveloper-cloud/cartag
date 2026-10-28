@@ -11,12 +11,14 @@ services:
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
+    # เปิดเฉพาะในเครื่อง ให้ reverse proxy (Caddy ที่มีอยู่บนเซิร์ฟเวอร์) ส่งต่อมา — ดู deploy/Caddyfile
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
 
-  # HTTPS อัตโนมัติ (Let's Encrypt) — ต้องมีโดเมนที่ชี้ DNS มาที่เครื่องนี้ และเปิดพอร์ต 80/443
-  # ถ้ายังไม่มีโดเมน ลบ service นี้ออก แล้วเข้าผ่าน http://<IP>:3000 ไปก่อน
+  # Caddy ของโปรเจกต์นี้เอง — ใช้เฉพาะเซิร์ฟเวอร์ที่ยังไม่มี web server บนพอร์ต 80/443
+  # เปิดด้วย: docker compose --profile caddy up -d --build
   caddy:
+    profiles: ["caddy"]
     image: caddy:2
     restart: unless-stopped
     command: caddy reverse-proxy --from ${DOMAIN:-localhost} --to app:3000
