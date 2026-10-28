@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ระบบบันทึกการใช้รถด้วย QR Code
 
-## Getting Started
+ติด QR ไว้ที่รถแต่ละคัน → คนขับสแกนด้วยกล้องมือถือ (ไม่ต้องลงแอป) → กรอกฟอร์ม → แอดมินดูตาราง/ดาวน์โหลด Excel ตามแบบฟอร์ม "ตารางรายละเอียดการเดินทางและการใช้รถ"
 
-First, run the development server:
+## Stack
+- **Next.js 15** (App Router + Server Actions) — หน้าเว็บและ API อยู่ในโปรเจกต์เดียว
+- **Prisma + SQLite** — ไฟล์ฐานข้อมูลเดียว ไม่ต้องตั้งเซิร์ฟเวอร์ DB (เปลี่ยนเป็น PostgreSQL ได้โดยแก้ `provider` ใน `prisma/schema.prisma`)
+- **Tailwind CSS** — หน้าจอเหมาะกับมือถือ
+- **qrcode** — สร้าง QR, **exceljs** — export Excel
 
+## การทำงาน
+1. **สแกนตอนออก** → กรอก ผู้ใช้รถ/แผนก, ออกเดินทางจาก, สถานที่ไป, เลขไมล์ก่อนเดินทาง (เติมให้อัตโนมัติจากเลขไมล์ล่าสุด) — วันที่และเวลาบันทึกอัตโนมัติ
+2. **สแกนตอนคืนรถ** → ระบบรู้ว่ารถยังไม่คืน จึงแสดงฟอร์มกรอกเลขไมล์หลังเดินทาง → คำนวณระยะทางให้
+3. **แอดมิน** (`/admin`) → สถานะรถทุกคัน, ตารางรายเดือนต่อคัน, ดาวน์โหลด Excel, พิมพ์ QR
+
+## ติดตั้ง
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run db:setup     # สร้างฐานข้อมูล + เพิ่มรถ 5 คัน
+npm run dev          # http://localhost:3000/admin
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ตั้งค่าใน `.env`:
+| ตัวแปร | ความหมาย |
+|---|---|
+| `DATABASE_URL` | ที่อยู่ไฟล์ฐานข้อมูล |
+| `NEXT_PUBLIC_BASE_URL` | URL ที่ฝังใน QR — **ต้องเป็นที่อยู่ที่มือถือเข้าถึงได้** เช่น `http://192.168.1.50:3000` หรือ `https://car.yourcompany.co.th` |
+| `ADMIN_PASSWORD` | รหัสผ่านหน้าแอดมิน (ควรเปลี่ยน) |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> ⚠️ ตั้ง `NEXT_PUBLIC_BASE_URL` ให้ถูกก่อนพิมพ์ QR เพราะ URL ถูกฝังลงใน QR
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Production
+```bash
+npm run build && npm start
+```
+ต้องรันบนเครื่องที่มีดิสก์ถาวร (VPS / เซิร์ฟเวอร์ในบริษัท) ถ้าจะ deploy บน Vercel ให้เปลี่ยนเป็น PostgreSQL (เช่น Neon/Supabase) เพราะ SQLite ไม่เก็บข้อมูลถาวรบน serverless
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## เพิ่ม/แก้ทะเบียนรถ
+- เพิ่มรถใหม่: เพิ่มทะเบียนท้ายรายการใน `prisma/seed.ts` แล้วรัน `npx tsx prisma/seed.ts`
+- แก้ทะเบียน: รัน `npx prisma studio` แล้วแก้ช่อง `plate` ในตาราง Vehicle — รหัสใน QR คือ `v1`, `v2`, ... ไม่ผูกกับทะเบียน จึงไม่ต้องพิมพ์ QR ใหม่

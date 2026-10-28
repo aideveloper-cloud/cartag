@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Vehicle {
+  id        String   @id @default(cuid())
+  plate     String   @unique // ทะเบียนรถ เช่น "2 ฒพ 2523"
+  code      String   @unique // รหัสสั้นที่ฝังใน QR เช่น "v1"
+  createdAt DateTime @default(now())
+  trips     Trip[]
+}
+
+model Trip {
+  id            String    @id @default(cuid())
+  vehicleId     String
+  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id])
+  departedAt    DateTime  @default(now()) // วันที่ + เวลาออกเดินทาง
+  origin        String    // ออกเดินทางจาก
+  driver        String    // ผู้ใช้รถ
+  department    String    @default("") // แผนก
+  destination   String    // สถานที่ไป
+  mileageStart  Int       // เลขไมล์ก่อนเดินทาง
+  mileageEnd    Int?      // เลขไมล์หลังเดินทาง (null = ยังไม่คืนรถ)
+  returnedAt    DateTime? // วันที่ + เวลาคืนรถ
+  photoStart    String?   // ชื่อไฟล์รูปเลขไมล์ตอนออก (ใน uploads/)
+  photoEnd      String?   // ชื่อไฟล์รูปเลขไมล์ตอนคืน
+  createdAt     DateTime  @default(now())
+
+  @@index([vehicleId, departedAt])
+}
