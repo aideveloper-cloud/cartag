@@ -16,9 +16,13 @@
 set -e
 SERVER=${KGF_SERVER:-server@192.168.1.10}     # นอกออฟฟิศ: KGF_SERVER=server@100.x.x.x ./kgf-deploy.sh ...
 CONF=.kgf-deploy
+# ServerKG มีทั้ง Colima และ Docker Desktop — stack ของ KGF (kgf-postgres, network kgf) อยู่ใน Colima
+# จึงระบุ context ตรง ๆ ไม่พึ่ง current context ของเครื่อง (ซึ่งถูกเปลี่ยนเป็น desktop-linux ได้)
+CTX=${KGF_DOCKER_CONTEXT:-colima}
+ENVS="export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH DOCKER_CONTEXT=$CTX"
 CMD=$1; shift || true
 
-R(){ ssh -o ConnectTimeout=5 "$SERVER" "export PATH=/opt/homebrew/bin:/usr/local/bin:\$PATH; $1"; }
+R(){ ssh -o ConnectTimeout=5 "$SERVER" "$ENVS; $1"; }
 need_app(){
   [ -f $CONF ] && source $CONF
   APP=${1:-$APP}
@@ -39,7 +43,7 @@ deploy)
   docker build --platform linux/arm64 -t $IMG:$VER -t $IMG:latest .
 
   echo "== 2/5 ส่ง image ขึ้น server =="
-  docker save $IMG:$VER $IMG:latest | gzip | ssh "$SERVER" "export PATH=/opt/homebrew/bin:\$PATH; gunzip | docker load" | tail -1
+  docker save $IMG:$VER $IMG:latest | gzip | ssh "$SERVER" "$ENVS; gunzip | docker load" | tail -1
 
   echo "== 3/5 ส่ง config =="
   R "mkdir -p $DIR && touch $DIR/.env"
@@ -82,7 +86,7 @@ env)
   R "cd $DIR && docker compose -p $APP up -d --force-recreate" ;;
 logs)
   need_app "$1"
-  ssh -t "$SERVER" "export PATH=/opt/homebrew/bin:\$PATH; docker logs -f --tail 100 $APP" ;;
+  ssh -t "$SERVER" "$ENVS; docker logs -f --tail 100 $APP" ;;
 status)
   [ -f $CONF ] && source $CONF; APP=${1:-$APP}
   R "docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
