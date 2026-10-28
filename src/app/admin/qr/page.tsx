@@ -20,7 +20,7 @@ export default async function QrSheetPage() {
       <div className="no-print mb-4 flex items-center gap-4">
         <Link href="/admin" className="text-blue-600">← กลับ</Link>
         <PrintButton />
-        <span className="text-sm text-gray-500">QR ชี้ไปที่ {baseUrl()} — ตั้งค่าได้ที่ NEXT_PUBLIC_BASE_URL</span>
+        <span className="text-sm text-gray-500">QR ชี้ไปที่ {baseUrl()} — ตั้งค่าได้ที่ BASE_URL</span>
       </div>
       <div className="grid grid-cols-2 gap-4">
         {cards.map((v) => (

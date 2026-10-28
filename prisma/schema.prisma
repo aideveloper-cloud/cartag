@@ -15,13 +15,25 @@ model Vehicle {
   trips     Trip[]
 }
 
+model Employee {
+  id         String   @id @default(cuid())
+  code       String   @unique // รหัสพนักงาน
+  name       String
+  department String
+  active     Boolean  @default(true) // ปิดแทนการลบ เพื่อให้ประวัติเดิมยังอ้างอิงได้
+  createdAt  DateTime @default(now())
+  trips      Trip[]
+}
+
 model Trip {
   id            String    @id @default(cuid())
   vehicleId     String
   vehicle       Vehicle   @relation(fields: [vehicleId], references: [id])
   departedAt    DateTime  @default(now()) // วันที่ + เวลาออกเดินทาง
   origin        String    // ออกเดินทางจาก
-  driver        String    // ผู้ใช้รถ
+  employeeId    String?
+  employee      Employee? @relation(fields: [employeeId], references: [id])
+  driver        String    // ผู้ใช้รถ (เก็บชื่อ ณ ตอนยืม เผื่อพนักงานเปลี่ยนชื่อ/แผนกภายหลัง)
   department    String    @default("") // แผนก
   destination   String    // สถานที่ไป
   mileageStart  Int       // เลขไมล์ก่อนเดินทาง
@@ -29,6 +41,8 @@ model Trip {
   returnedAt    DateTime? // วันที่ + เวลาคืนรถ
   photoStart    String?   // ชื่อไฟล์รูปเลขไมล์ตอนออก (ใน uploads/)
   photoEnd      String?   // ชื่อไฟล์รูปเลขไมล์ตอนคืน
+  warnings      String?   // คำเตือนเลขไมล์ที่ผู้ใช้กดยืนยันผ่าน ให้แอดมินตรวจ
+  selfie        String?   // ชื่อไฟล์รูปหน้าผู้ยืม (ลบอัตโนมัติเมื่อครบ SELFIE_RETENTION_DAYS)
   createdAt     DateTime  @default(now())
 
   @@index([vehicleId, departedAt])

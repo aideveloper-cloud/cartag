@@ -30,10 +30,13 @@ export function getTripsForMonth(vehicleId: string, month: string) {
   });
 }
 
-// แผนกที่เคยกรอก ใช้เป็นตัวเลือกในฟอร์ม
+export function findActiveEmployee(code: string) {
+  return prisma.employee.findFirst({ where: { code: code.trim().toUpperCase(), active: true } });
+}
+
+// แผนกที่มีอยู่ ใช้เป็นตัวเลือกในฟอร์มพนักงาน
 export async function getDepartments() {
-  const rows = await prisma.trip.findMany({
-    where: { department: { not: "" } },
+  const rows = await prisma.employee.findMany({
     distinct: ["department"],
     select: { department: true },
     orderBy: { department: "asc" },

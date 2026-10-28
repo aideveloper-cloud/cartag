@@ -1,0 +1,32 @@
+# ใช้งาน: ตั้งค่า .env (ดู .env.example) แล้วรัน  docker compose up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      BASE_URL: ${BASE_URL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ต้องตั้ง ADMIN_PASSWORD ใน .env}
+      MAX_TRIP_KM: ${MAX_TRIP_KM:-1000}
+      SELFIE_RETENTION_DAYS: ${SELFIE_RETENTION_DAYS:-180}
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    ports:
+      - "3000:3000"
+
+  # HTTPS อัตโนมัติ (Let's Encrypt) — ต้องมีโดเมนที่ชี้ DNS มาที่เครื่องนี้ และเปิดพอร์ต 80/443
+  # ถ้ายังไม่มีโดเมน ลบ service นี้ออก แล้วเข้าผ่าน http://<IP>:3000 ไปก่อน
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${DOMAIN:-localhost} --to app:3000
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:

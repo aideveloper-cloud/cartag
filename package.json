@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:setup": "prisma db push && tsx prisma/seed.ts"
+    "db:setup": "prisma migrate deploy && node prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -28,7 +28,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.28",
     "tailwindcss": "^4",
-    "tsx": "^4.23.15",
     "typescript": "^5"
   },
   "allowScripts": {
@@ -36,8 +35,5 @@
     "@prisma/engines@6.19.3": true,
     "prisma@6.19.3": true,
     "unrs-resolver@1.12.2": true
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
   }
 }

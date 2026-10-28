@@ -23,6 +23,11 @@ export function monthRange(month: string) {
   return { start, end };
 }
 
+// "YYYY-MM" ของวันที่นั้นตามเวลาไทย
+export function monthOf(d: Date) {
+  return d.toLocaleDateString("en-CA", { timeZone: TZ }).slice(0, 7);
+}
+
 export function monthLabel(month: string) {
   const { start } = monthRange(month);
   return start.toLocaleDateString("th-TH", { timeZone: TZ, month: "long", year: "numeric" });
@@ -36,5 +41,16 @@ export function formatReturn(departedAt: Date, returnedAt: Date | null) {
 }
 
 export function baseUrl() {
-  return (process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+// แปลง Date <-> ค่าของ <input type="datetime-local"> ตามเวลาไทย
+export function toLocalInput(d: Date | null) {
+  if (!d) return "";
+  return new Date(d.getTime() + 7 * 3600_000).toISOString().slice(0, 16);
+}
+
+export function fromLocalInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  return new Date(`${value}:00+07:00`);
 }

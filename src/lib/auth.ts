@@ -12,7 +12,8 @@ export async function login(_prev: { error?: string }, form: FormData): Promise<
   jar.set(ADMIN_COOKIE, await adminToken(), {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // ตั้ง secure เฉพาะเมื่อใช้ https ไม่งั้นเบราว์เซอร์จะไม่เก็บคุกกี้ และล็อกอินไม่ได้บน http
+    secure: (process.env.BASE_URL ?? "").startsWith("https://"),
     maxAge: 60 * 60 * 24 * 30,
     path: "/",
   });

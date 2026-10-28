@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { formatDate, formatTime } from "@/lib/format";
-import { getDepartments, getLastMileage, getOpenTrip, getVehicleByCode } from "@/lib/trips";
+import { getLastMileage, getOpenTrip, getVehicleByCode } from "@/lib/trips";
 import { EndTripForm, StartTripForm } from "./TripForms";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,6 @@ export default async function ScanPage({ params }: { params: Promise<{ code: str
 
   const openTrip = await getOpenTrip(vehicle.id);
   const lastMileage = openTrip ? null : await getLastMileage(vehicle.id);
-  const departments = openTrip ? [] : await getDepartments();
 
   return (
     <main className="mx-auto min-h-screen max-w-md p-4">
@@ -46,7 +45,7 @@ export default async function ScanPage({ params }: { params: Promise<{ code: str
         ) : (
           <>
             <h2 className="mb-3 text-xl font-bold text-blue-700">ออกเดินทาง</h2>
-            <StartTripForm code={code} lastMileage={lastMileage} departments={departments} />
+            <StartTripForm code={code} lastMileage={lastMileage} />
           </>
         )}
       </section>

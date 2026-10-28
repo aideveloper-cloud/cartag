@@ -70,6 +70,7 @@ export default async function VehicleLogPage({
               <th colSpan={2} className={th}>เลขไมล์</th>
               <th rowSpan={2} className={th}>ระยะทาง<br />รวม/กม.</th>
               <th rowSpan={2} className={`${th} no-print`}>รูป</th>
+              <th rowSpan={2} className={`${th} no-print`} />
             </tr>
             <tr>
               <th className={th}>ออกเดินทางจาก</th>
@@ -81,11 +82,11 @@ export default async function VehicleLogPage({
           <tbody>
             {trips.length === 0 && (
               <tr>
-                <td colSpan={11} className={`${td} py-6 text-gray-400`}>ไม่มีรายการในเดือนนี้</td>
+                <td colSpan={12} className={`${td} py-6 text-gray-400`}>ไม่มีรายการในเดือนนี้</td>
               </tr>
             )}
             {trips.map((t) => (
-              <tr key={t.id}>
+              <tr key={t.id} className={t.warnings ? "bg-orange-50" : ""} title={t.warnings ?? undefined}>
                 <td className={td}>{formatDate(t.departedAt)}</td>
                 <td className={td}>{t.origin}</td>
                 <td className={td}>{formatTime(t.departedAt)}</td>
@@ -97,8 +98,15 @@ export default async function VehicleLogPage({
                 <td className={td}>{t.mileageEnd?.toLocaleString() ?? <span className="text-orange-600">ยังไม่คืนรถ</span>}</td>
                 <td className={td}>{t.mileageEnd !== null ? (t.mileageEnd - t.mileageStart).toLocaleString() : "-"}</td>
                 <td className={`${td} no-print whitespace-nowrap`}>
+                  {t.selfie && <PhotoLink name={t.selfie} label="หน้า" />}
                   {t.photoStart && <PhotoLink name={t.photoStart} label="ออก" />}
                   {t.photoEnd && <PhotoLink name={t.photoEnd} label="คืน" />}
+                </td>
+                <td className={`${td} no-print whitespace-nowrap`}>
+                  {t.warnings && <span className="mr-1" aria-label="มีคำเตือน">⚠️</span>}
+                  <Link href={`/admin/trips/${t.id}`} className="text-blue-600">
+                    แก้ไข
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -107,7 +115,7 @@ export default async function VehicleLogPage({
             <tr>
               <td colSpan={9} className={`${td} text-right font-bold`}>รวม</td>
               <td className={`${td} font-bold`}>{totalKm.toLocaleString()}</td>
-              <td className={`${td} no-print`} />
+              <td colSpan={2} className={`${td} no-print`} />
             </tr>
           </tfoot>
         </table>
