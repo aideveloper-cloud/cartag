@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getDepartments } from "@/lib/trips";
 import { updateEmployee } from "./actions";
-import { AddEmployeeForm, ImportForm } from "./Forms";
+import { AddEmployeeForm, DeleteEmployeeButton, ImportForm } from "./Forms";
 
 export const dynamic = "force-dynamic";
 
@@ -52,12 +52,15 @@ export default async function EmployeesPage() {
               <tr key={e.id} className={`border-b ${e.active ? "" : "text-gray-400"}`}>
                 <td className="py-1 font-mono">{e.code}</td>
                 <td colSpan={4}>
-                  <form action={updateEmployee.bind(null, e.id)} className="flex items-center gap-2">
-                    <input name="name" defaultValue={e.name} className="flex-1 rounded border px-2 py-1" />
-                    <input name="department" defaultValue={e.department} list="dept-list" className="w-40 rounded border px-2 py-1" />
-                    <input type="checkbox" name="active" defaultChecked={e.active} className="h-4 w-4" />
-                    <button className="rounded border px-3 py-1">บันทึก</button>
-                  </form>
+                  <div className="flex items-center gap-2">
+                    <form action={updateEmployee.bind(null, e.id)} className="flex flex-1 items-center gap-2">
+                      <input name="name" defaultValue={e.name} className="flex-1 rounded border px-2 py-1" />
+                      <input name="department" defaultValue={e.department} list="dept-list" className="w-40 rounded border px-2 py-1" />
+                      <input type="checkbox" name="active" defaultChecked={e.active} className="h-4 w-4" />
+                      <button className="rounded border px-3 py-1">บันทึก</button>
+                    </form>
+                    <DeleteEmployeeButton id={e.id} name={e.name} />
+                  </div>
                 </td>
               </tr>
             ))}

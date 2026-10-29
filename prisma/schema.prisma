@@ -20,7 +20,7 @@ model Employee {
   code       String   @unique // รหัสพนักงาน
   name       String
   department String
-  active     Boolean  @default(true) // ปิดแทนการลบ เพื่อให้ประวัติเดิมยังอ้างอิงได้
+  active     Boolean  @default(true) // ปิดใช้งานชั่วคราว (ลบถาวรได้ — รายการใช้รถเก็บชื่อ/แผนกไว้เอง)
   createdAt  DateTime @default(now())
   trips      Trip[]
 }
@@ -46,6 +46,7 @@ model Trip {
   createdAt     DateTime  @default(now())
 
   @@index([vehicleId, departedAt])
+  // + unique index "Trip_one_open_per_vehicle" (vehicleId) WHERE mileageEnd IS NULL — อยู่ใน migration 1_one_open_trip_per_vehicle
 }
 
 // เก็บรูปในฐานข้อมูล (ย่อจากมือถือแล้ว ~30–150KB/รูป) เพื่อให้ backup ของ Postgres ครอบคลุมรูปด้วย

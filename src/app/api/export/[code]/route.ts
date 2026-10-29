@@ -17,7 +17,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
   const ws = wb.addWorksheet(vehicle.plate.replace(/[\\/?*[\]:]/g, "-"), {
     pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
-  ws.columns = [14, 18, 9, 20, 14, 18, 12, 14, 14, 12].map((width) => ({ width }));
+  // B–C (ออกเดินทางจาก/เวลา) แคบลง, D (ผู้ใช้รถ) กว้างขึ้นให้ชื่อ-นามสกุลไม่ตัดบรรทัด
+  ws.columns = [14, 13, 8, 30, 14, 18, 12, 14, 14, 12].map((width) => ({ width }));
   const font = { name: "TH SarabunPSK", size: 16 };
   const border = { style: "thin" as const };
   const allBorders = { top: border, left: border, bottom: border, right: border };
@@ -49,6 +50,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
       cell.border = allBorders;
     });
   }
+  for (const a of ["B4", "B5", "C5"]) ws.getCell(a).font = { ...font, size: 14, bold: true };
 
   const rowCount = Math.max(trips.length, MIN_ROWS);
   for (let i = 0; i < rowCount; i++) {

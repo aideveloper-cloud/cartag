@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addEmployee, importEmployees, type EmpState } from "./actions";
+import { addEmployee, deleteEmployee, importEmployees, type EmpState } from "./actions";
 
 const input = "rounded border border-gray-300 px-2 py-1";
 
@@ -29,6 +29,19 @@ export function AddEmployeeForm({ departments }: { departments: string[] }) {
         </button>
       </div>
       <Result state={state} />
+    </form>
+  );
+}
+
+export function DeleteEmployeeButton({ id, name }: { id: string; name: string }) {
+  return (
+    <form
+      action={deleteEmployee.bind(null, id)}
+      onSubmit={(e) => {
+        if (!confirm(`ลบ ${name} ออกจากระบบ? ประวัติการใช้รถเดิมยังอยู่`)) e.preventDefault();
+      }}
+    >
+      <button className="rounded border border-red-300 px-3 py-1 text-red-600">ลบ</button>
     </form>
   );
 }

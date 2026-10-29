@@ -62,8 +62,8 @@ export default async function VehicleLogPage({
           <thead>
             <tr>
               <th rowSpan={2} className={th}>วันที่</th>
-              <th colSpan={2} className={th}>สถานที่ออกเดินทาง</th>
-              <th rowSpan={2} className={th}>ผู้ใช้รถ</th>
+              <th colSpan={2} className={`${th} text-xs`}>สถานที่ออกเดินทาง</th>
+              <th rowSpan={2} className={`${th} min-w-44`}>ผู้ใช้รถ</th>
               <th rowSpan={2} className={th}>แผนก</th>
               <th rowSpan={2} className={th}>สถานที่ไป</th>
               <th rowSpan={2} className={th}>เวลา<br />คืนรถ</th>
@@ -73,8 +73,8 @@ export default async function VehicleLogPage({
               <th rowSpan={2} className={`${th} no-print`} />
             </tr>
             <tr>
-              <th className={th}>ออกเดินทางจาก</th>
-              <th className={th}>เวลา</th>
+              <th className={`${th} w-24 text-xs`}>ออกเดินทางจาก</th>
+              <th className={`${th} w-12 text-xs`}>เวลา</th>
               <th className={th}>เลขไมล์<br />ก่อนเดินทาง</th>
               <th className={th}>เลขไมล์หลัง<br />เดินทาง</th>
             </tr>

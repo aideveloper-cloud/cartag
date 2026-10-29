@@ -153,7 +153,7 @@ function EmployeeInput() {
   );
 }
 
-export function StartTripForm({ code, lastMileage }: { code: string; lastMileage: number | null }) {
+export function StartTripForm({ code }: { code: string }) {
   const f = useTripForm((prev, form) => startTrip(code, prev, form));
 
   return (
@@ -175,14 +175,11 @@ export function StartTripForm({ code, lastMileage }: { code: string; lastMileage
           inputMode="numeric"
           pattern="[0-9,]*"
           className={input}
-          defaultValue={lastMileage ?? ""}
+          placeholder="ดูจากหน้าปัดรถ"
         />
-        {lastMileage !== null && (
-          <p className="mt-1 text-xs text-gray-500">เติมจากเลขไมล์ล่าสุด — แก้ไขได้ถ้าไม่ตรงหน้าปัด</p>
-        )}
       </div>
       <PhotoInput name="selfie" title="ถ่ายรูปหน้าผู้ยืมรถ" capture="user" required />
-      <PhotoInput name="photo" title="รูปหน้าปัดเลขไมล์ (ไม่บังคับ)" capture="environment" />
+      <PhotoInput name="photo" title="รูปหน้าปัดเลขไมล์" capture="environment" required />
       <Feedback state={f.state} confirming={f.confirming} />
       <SubmitButton pending={f.pending} confirming={f.confirming} text="บันทึกออกเดินทาง" color="bg-blue-600" />
       <p className="text-xs text-gray-500">
@@ -209,7 +206,7 @@ export function EndTripForm({ code, mileageStart }: { code: string; mileageStart
           autoFocus
         />
       </div>
-      <PhotoInput name="photo" title="รูปหน้าปัดเลขไมล์ (ไม่บังคับ)" capture="environment" />
+      <PhotoInput name="photo" title="รูปหน้าปัดเลขไมล์" capture="environment" required />
       <Feedback state={f.state} confirming={f.confirming} />
       <SubmitButton pending={f.pending} confirming={f.confirming} text="บันทึกคืนรถ" color="bg-green-600" />
     </form>

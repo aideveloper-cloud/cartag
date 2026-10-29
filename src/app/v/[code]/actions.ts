@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { MAX_MILEAGE, MAX_TRIP_KM } from "@/lib/config";
-import { prisma } from "@/lib/db";
+import { isUniqueViolation, prisma } from "@/lib/db";
 import { deletePhotos, purgeOldSelfies, savePhoto } from "@/lib/photos";
 import { findActiveEmployee, getLastMileage, getOpenTrip, getVehicleByCode } from "@/lib/trips";
 
@@ -21,6 +21,8 @@ function mileage(form: FormData, key: string) {
 }
 
 const km = (n: number) => n.toLocaleString("en-US");
+
+const hasFile = (v: FormDataEntryValue | null) => v instanceof File && v.size > 0;
 
 export async function lookupEmployee(code: string) {
   const emp = await findActiveEmployee(code);
@@ -42,7 +44,8 @@ export async function startTrip(code: string, _prev: FormState, form: FormData):
   if (mileageStart === null) return { error: "เลขไมล์ไม่ถูกต้อง" };
 
   const selfieFile = form.get("selfie");
-  if (!(selfieFile instanceof File) || selfieFile.size === 0) return { error: "กรุณาถ่ายรูปหน้าผู้ยืมรถ" };
+  if (!hasFile(selfieFile)) return { error: "กรุณาถ่ายรูปหน้าผู้ยืมรถ" };
+  if (!hasFile(form.get("photo"))) return { error: "กรุณาถ่ายรูปหน้าปัดเลขไมล์" };
 
   const warnings: string[] = [];
   const last = await getLastMileage(vehicle.id);
@@ -63,20 +66,27 @@ export async function startTrip(code: string, _prev: FormState, form: FormData):
     return { error: (e as Error).message };
   }
 
-  await prisma.trip.create({
-    data: {
-      vehicleId: vehicle.id,
-      employeeId: employee.id,
-      driver: employee.name,
-      department: employee.department,
-      origin,
-      destination,
-      mileageStart,
-      photoStart,
-      selfie,
-      warnings: warnings.join("\n") || null,
-    },
-  });
+  try {
+    await prisma.trip.create({
+      data: {
+        vehicleId: vehicle.id,
+        employeeId: employee.id,
+        driver: employee.name,
+        department: employee.department,
+        origin,
+        destination,
+        mileageStart,
+        photoStart,
+        selfie,
+        warnings: warnings.join("\n") || null,
+      },
+    });
+  } catch (e) {
+    // อีกเครื่องบันทึกออกเดินทางรถคันนี้ไปก่อนในจังหวะเดียวกัน
+    await deletePhotos([selfie, photoStart]);
+    if (isUniqueViolation(e)) return { error: "รถคันนี้เพิ่งมีคนบันทึกออกเดินทางไปแล้ว กรุณารีเฟรชหน้า" };
+    throw e;
+  }
   await purgeOldSelfies().catch(() => {});
   redirect(`/v/${code}/done?t=start`);
 }
@@ -89,6 +99,7 @@ export async function endTrip(code: string, _prev: FormState, form: FormData): P
 
   const mileageEnd = mileage(form, "mileageEnd");
   if (mileageEnd === null) return { error: "เลขไมล์ไม่ถูกต้อง" };
+  if (!hasFile(form.get("photo"))) return { error: "กรุณาถ่ายรูปหน้าปัดเลขไมล์" };
   if (mileageEnd < trip.mileageStart) {
     return { error: `เลขไมล์หลังเดินทางต้องไม่น้อยกว่าเลขไมล์ก่อนเดินทาง (${km(trip.mileageStart)})` };
   }
@@ -103,8 +114,9 @@ export async function endTrip(code: string, _prev: FormState, form: FormData): P
     return { error: (e as Error).message };
   }
 
-  await prisma.trip.update({
-    where: { id: trip.id },
+  // คืนได้ครั้งเดียว — ถ้าอีกเครื่องคืนไปก่อนแล้ว ไม่เขียนทับเลขไมล์ของเขา
+  const { count } = await prisma.trip.updateMany({
+    where: { id: trip.id, mileageEnd: null },
     data: {
       mileageEnd,
       returnedAt: new Date(),
@@ -112,5 +124,9 @@ export async function endTrip(code: string, _prev: FormState, form: FormData): P
       warnings: [trip.warnings, warning].filter(Boolean).join("\n") || null,
     },
   });
+  if (count === 0) {
+    await deletePhotos([photoEnd]);
+    return { error: "รายการนี้เพิ่งมีคนบันทึกคืนรถไปแล้ว กรุณารีเฟรชหน้า" };
+  }
   redirect(`/v/${code}/done?t=end&km=${distance}`);
 }

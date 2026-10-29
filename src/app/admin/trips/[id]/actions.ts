@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { assertAdmin } from "@/lib/admin";
 import { MAX_MILEAGE } from "@/lib/config";
-import { prisma } from "@/lib/db";
+import { isUniqueViolation, prisma } from "@/lib/db";
 import { fromLocalInput, monthOf } from "@/lib/format";
 import { deletePhotos } from "@/lib/photos";
 
@@ -53,18 +53,23 @@ export async function updateTrip(id: string, _prev: EditState, form: FormData): 
     if (otherOpen) return { error: "รถคันนี้มีรายการอื่นที่ยังไม่คืนอยู่แล้ว" };
   }
 
-  await prisma.trip.update({
-    where: { id },
-    data: {
-      ...fields,
-      departedAt,
-      returnedAt,
-      mileageStart,
-      mileageEnd: mileageEnd ?? null,
-      // แอดมินตรวจแล้ว ล้างคำเตือนได้
-      warnings: form.get("clearWarnings") === "on" ? null : trip.warnings,
-    },
-  });
+  try {
+    await prisma.trip.update({
+      where: { id },
+      data: {
+        ...fields,
+        departedAt,
+        returnedAt,
+        mileageStart,
+        mileageEnd: mileageEnd ?? null,
+        // แอดมินตรวจแล้ว ล้างคำเตือนได้
+        warnings: form.get("clearWarnings") === "on" ? null : trip.warnings,
+      },
+    });
+  } catch (e) {
+    if (isUniqueViolation(e)) return { error: "รถคันนี้มีรายการอื่นที่ยังไม่คืนอยู่แล้ว" };
+    throw e;
+  }
   return backToLog(trip.vehicleId, departedAt);
 }
 

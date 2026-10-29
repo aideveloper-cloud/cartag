@@ -56,3 +56,13 @@ export async function updateEmployee(id: string, form: FormData) {
   });
   revalidatePath("/admin/employees");
 }
+
+// ลบถาวร — รายการใช้รถเดิมยังอยู่ เพราะเก็บชื่อ/แผนกไว้ในตัวรายการเอง แค่ตัดการอ้างอิงถึงพนักงาน
+export async function deleteEmployee(id: string) {
+  await assertAdmin();
+  await prisma.$transaction([
+    prisma.trip.updateMany({ where: { employeeId: id }, data: { employeeId: null } }),
+    prisma.employee.delete({ where: { id } }),
+  ]);
+  revalidatePath("/admin/employees");
+}

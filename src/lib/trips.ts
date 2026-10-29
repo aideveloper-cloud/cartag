@@ -13,7 +13,7 @@ export function getOpenTrip(vehicleId: string) {
   });
 }
 
-// เลขไมล์ล่าสุดที่รู้ เพื่อเติมให้อัตโนมัติในช่อง "เลขไมล์ก่อนเดินทาง"
+// เลขไมล์ล่าสุดที่รู้ ใช้ตรวจว่าเลขไมล์ที่กรอกถอยหลังหรือกระโดดผิดปกติ
 export async function getLastMileage(vehicleId: string) {
   const last = await prisma.trip.findFirst({
     where: { vehicleId, mileageEnd: { not: null } },
