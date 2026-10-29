@@ -47,3 +47,7 @@ next-env.d.ts
 !.env.server.example
 .kgf-deploy
 /data
+
+# Playwright
+/test-results/
+/playwright-report/
