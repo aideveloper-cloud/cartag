@@ -1,7 +1,7 @@
 #!/bin/bash
 # =============================================================
 #  KGF Deploy — ใช้บนเครื่อง dev (build ที่นี่, server แค่รัน)
-#  Server: ServerKG 192.168.1.15  (Colima + Docker)
+#  Server: ServerKG 192.168.1.10  (Colima + Docker)
 #
 #  ./kgf-deploy.sh deploy  <app> [port] [app_port]   build + ส่งขึ้น + รัน
 #  ./kgf-deploy.sh env     [app]                     ส่ง .env.server ขึ้นไป + restart
