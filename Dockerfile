@@ -1,4 +1,4 @@
-# deploy ด้วย kgf-deploy.sh (build ARM64 บนเครื่อง dev แล้วส่ง image ขึ้น ServerKG)
+# deploy ด้วย kgf-deploy.sh (ส่งโค้ดขึ้น ServerKG แล้ว build ARM64 บน server)
 FROM node:22-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app

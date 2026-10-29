@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================
-#  KGF Deploy — ใช้บนเครื่อง dev (build ที่นี่, server แค่รัน)
+#  KGF Deploy — สั่งจากเครื่อง dev: ส่งโค้ดขึ้นไป build + รันบน server (เครื่อง dev ไม่ต้องมี Docker)
 #  Server: ServerKG 192.168.1.10  (Colima + Docker)
 #
 #  ./kgf-deploy.sh deploy  <app> [port] [app_port]   build + ส่งขึ้น + รัน
@@ -39,11 +39,18 @@ deploy)
   printf 'APP=%s\nPORT=%s\nAPP_PORT=%s\n' "$APP" "$PORT" "$APP_PORT" > $CONF
   VER=$(date +%Y%m%d-%H%M%S)
 
-  echo "== 1/5 Build $IMG:$VER (ARM64) =="
-  docker build --platform linux/arm64 -t $IMG:$VER -t $IMG:latest .
+  echo "== 1/5 ส่งโค้ดขึ้น server =="
+  # git repo: ส่งเฉพาะไฟล์ที่ไม่ถูก ignore (รวมที่ยังไม่ commit) → .env.server / node_modules ไม่ขึ้นไป
+  # ไม่ใช่ git: ส่งทั้งโฟลเดอร์ ยกเว้นของหนักและไฟล์ .env* (pattern '.env.*[!e]' เก็บไว้แค่ .env.example)
+  BUILD="/tmp/kgf-build-$APP-$VER"
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git ls-files -co --exclude-standard -z | tar --null -czf - -T -
+  else
+    tar -czf - --exclude=node_modules --exclude=.git --exclude=.next --exclude='.env' --exclude='.env.*[!e]' .
+  fi | ssh "$SERVER" "mkdir -p $BUILD && tar -xzf - -C $BUILD"
 
-  echo "== 2/5 ส่ง image ขึ้น server =="
-  docker save $IMG:$VER $IMG:latest | gzip | ssh "$SERVER" "$ENVS; gunzip | docker load" | tail -1
+  echo "== 2/5 Build $IMG:$VER บน server (ARM64) =="
+  R "set -o pipefail; docker build --platform linux/arm64 -t $IMG:$VER -t $IMG:latest $BUILD 2>&1 | tail -3; s=\$?; rm -rf $BUILD; exit \$s"
 
   echo "== 3/5 ส่ง config =="
   R "mkdir -p $DIR && touch $DIR/.env"
