@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const [vehicles, employeeCount, flagged] = await Promise.all([
     prisma.vehicle.findMany({
-      orderBy: { code: "asc" },
+      orderBy: [{ createdAt: "asc" }, { code: "asc" }],
       include: { trips: { orderBy: { departedAt: "desc" }, take: 1 } },
     }),
     prisma.employee.count({ where: { active: true } }),
@@ -26,6 +26,9 @@ export default async function AdminPage() {
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">ระบบบันทึกการใช้รถ</h1>
         <div className="flex gap-3">
+          <Link href="/admin/vehicles" className="rounded-lg border px-4 py-2">
+            รถ
+          </Link>
           <Link href="/admin/employees" className="rounded-lg border px-4 py-2">
             พนักงาน
           </Link>

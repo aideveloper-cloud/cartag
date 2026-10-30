@@ -7,7 +7,7 @@ import PrintButton from "./PrintButton";
 export const dynamic = "force-dynamic";
 
 export default async function QrSheetPage() {
-  const vehicles = await prisma.vehicle.findMany({ orderBy: { code: "asc" } });
+  const vehicles = await prisma.vehicle.findMany({ orderBy: [{ createdAt: "asc" }, { code: "asc" }] });
   const cards = await Promise.all(
     vehicles.map(async (v) => {
       const url = `${baseUrl()}/v/${v.code}`;

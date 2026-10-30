@@ -10,7 +10,7 @@ datasource db {
 model Vehicle {
   id        String   @id @default(cuid())
   plate     String   @unique // ทะเบียนรถ เช่น "2 ฒพ 2523"
-  code      String   @unique // รหัสสั้นที่ฝังใน QR เช่น "v1"
+  code      String   @unique // รหัสสั้นที่ฝังใน QR เช่น "v1" — รถใหม่ได้เลขจาก sequence vehicle_code_seq (migration 2)
   createdAt DateTime @default(now())
   trips     Trip[]
 }
