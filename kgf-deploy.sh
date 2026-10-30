@@ -73,7 +73,7 @@ EOF
 
   echo "== 4/5 รันบน server =="
   R "cd $DIR && docker compose -p $APP up -d --force-recreate"
-  R "docker images $IMG --format '{{.Tag}}' | grep -v latest | sort -r | tail -n +4 | xargs -I{} docker rmi $IMG:{} >/dev/null 2>&1; docker image prune -f >/dev/null; true"
+  R "docker images $IMG --format '{{.Tag}}' | grep -E '^[0-9]{8}-[0-9]{6}$' | sort -r | tail -n +4 | xargs -I{} docker rmi $IMG:{} >/dev/null 2>&1; docker image prune -f >/dev/null; true"
 
   echo "== 5/5 Health check =="
   CODE=$(R "for i in \$(seq 1 15); do c=\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:$PORT/); [ \"\$c\" != 000 ] && { echo \$c; exit 0; }; sleep 2; done; echo 000")
@@ -97,11 +97,11 @@ logs)
 status)
   [ -f $CONF ] && source $CONF; APP=${1:-$APP}
   R "docker ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
-  [ -n "$APP" ] && { echo; echo "เวอร์ชันของ $APP บน server:"; R "docker images kgf/$APP --format '  {{.Tag}}  {{.CreatedSince}}' | grep -v latest"; }
+  [ -n "$APP" ] && { echo; echo "เวอร์ชันของ $APP บน server:"; R "docker images kgf/$APP --format '{{.Tag}}  {{.CreatedSince}}' | grep -E '^[0-9]{8}-[0-9]{6} ' | sed 's/^/  /'"; }
   true ;;
 rollback)
   need_app "$1"
-  R "TAGS=\$(docker images $IMG --format '{{.Tag}}' | grep -v latest | sort -r)
+  R "TAGS=\$(docker images $IMG --format '{{.Tag}}' | grep -E '^[0-9]{8}-[0-9]{6}$' | sort -r)
      NEW=\$(echo \"\$TAGS\" | sed -n 1p); PREV=\$(echo \"\$TAGS\" | sed -n 2p)
      [ -z \"\$PREV\" ] && { echo '✖ ไม่มีเวอร์ชันก่อนหน้า'; exit 1; }
      docker tag $IMG:\$PREV $IMG:latest && docker rmi $IMG:\$NEW >/dev/null
