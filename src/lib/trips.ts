@@ -1,8 +1,7 @@
 import { prisma } from "./db";
-import { monthRange } from "./format";
 
 export function getVehicleByCode(code: string) {
-  return prisma.vehicle.findUnique({ where: { code } });
+  return prisma.vehicle.findUnique({ where: { code }, include: { group: true } });
 }
 
 // ทริปที่ยังไม่คืนรถ (ยังไม่ได้กรอกเลขไมล์หลังเดินทาง)
@@ -22,11 +21,22 @@ export async function getLastMileage(vehicleId: string) {
   return last?.mileageEnd ?? null;
 }
 
-export function getTripsForMonth(vehicleId: string, month: string) {
-  const { start, end } = monthRange(month);
+type Range = { start: Date; end: Date };
+
+// รายการที่ออกเดินทางในช่วง [start, end)
+export function getTripsInRange(vehicleId: string, { start, end }: Range) {
   return prisma.trip.findMany({
     where: { vehicleId, departedAt: { gte: start, lt: end } },
     orderBy: { departedAt: "asc" },
+  });
+}
+
+// การเติมน้ำมันตามวันที่บนบิลในช่วง [start, end) — บิลที่บันทึกช้าก็ยังนับเข้าเดือนของบิล
+export function getFuelInRange(vehicleIds: string[], { start, end }: Range) {
+  return prisma.fuelLog.findMany({
+    where: { vehicleId: { in: vehicleIds }, billDate: { gte: start, lt: end } },
+    include: { vehicle: true },
+    orderBy: [{ billDate: "asc" }, { createdAt: "asc" }],
   });
 }
 

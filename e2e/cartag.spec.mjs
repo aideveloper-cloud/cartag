@@ -1,6 +1,9 @@
 import { test, expect, devices } from "@playwright/test";
 import ExcelJS from "exceljs";
 
+// แถวในตารางการใช้รถ (หน้ารถมีตารางเติมน้ำมันอยู่ด้วย)
+const TRIP_ROWS = '[data-table="trips"] tbody tr';
+
 test.describe.configure({ mode: "serial" });
 
 // 1x1 PNG — แอปย่อรูปด้วย canvas ก่อนส่ง จึงต้องเป็นรูปจริง
@@ -226,16 +229,16 @@ test("monthly table shows trips, totals and photo links", async ({ page }) => {
   page.on("pageerror", (e) => errors.push(e.message));
   await adminLogin(page);
   await page.goto("/admin/vehicles/v1");
-  const rows = page.locator("tbody tr");
+  const rows = page.locator(TRIP_ROWS);
   await expect(rows).toHaveCount(2);
   await expect(rows.first()).toContainText("ทดสอบ หนึ่ง");
-  await expect(page.locator("tfoot")).toContainText("2,010");
-  const photo = await page.request.get(await page.locator('tbody a[href^="/api/photos/"]').first().getAttribute("href"));
+  await expect(page.locator('[data-table="trips"] tfoot')).toContainText("2,010");
+  const photo = await page.request.get(await page.locator('[data-table="trips"] tbody a[href^="/api/photos/"]').first().getAttribute("href"));
   expect(photo.status()).toBe(200);
   expect(photo.headers()["content-type"]).toMatch(/image/);
   // ช่องผู้ใช้รถกว้างกว่ากลุ่ม "ออกเดินทางจาก"
-  const userW = (await page.locator("thead th", { hasText: "ผู้ใช้รถ" }).boundingBox()).width;
-  const originW = (await page.locator("thead th", { hasText: "ออกเดินทางจาก" }).boundingBox()).width;
+  const userW = (await page.locator('[data-table="trips"] thead th', { hasText: "ผู้ใช้รถ" }).boundingBox()).width;
+  const originW = (await page.locator('[data-table="trips"] thead th', { hasText: "ออกเดินทางจาก" }).boundingBox()).width;
   expect(userW).toBeGreaterThan(originW);
   expect(errors).toEqual([]);
 });
@@ -266,13 +269,24 @@ test("Excel export has expected layout and numbers", async ({ page }) => {
   expect(ws.getCell("J19").value.formula).toBe("SUM(J6:J18)");
   // เดือนรูปแบบผิดต้องไม่พัง
   expect((await page.request.get("/api/export/v1?month=garbage")).status()).toBe(200);
+  expect((await page.request.get("/api/export/v1?from=2026-13-40&to=x")).status()).toBe(200);
+  // ช่วงวันที่: วันนี้วันเดียว ได้ทั้ง 2 รายการ, ช่วงในอดีตไม่มีรายการ
+  const today = await page.evaluate(() => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" }));
+  const ranged = new ExcelJS.Workbook();
+  await ranged.xlsx.load(await (await page.request.get(`/api/export/v1?from=${today}&to=${today}`)).body());
+  expect(ranged.worksheets[0].getCell("A3").value).toMatch(/^วันที่ /);
+  expect(ranged.worksheets[0].getCell("J7").value).toBe(1960);
+  const past = new ExcelJS.Workbook();
+  await past.xlsx.load(await (await page.request.get("/api/export/v1?from=2000-01-01&to=2000-01-31")).body());
+  expect(past.worksheets[0].getCell("A3").value).toMatch(/^ประจำเดือน /);
+  expect(past.worksheets[0].getCell("D6").value).toBeNull();
   expect((await page.request.get("/api/export/nope")).status()).toBe(404);
 });
 
 test("QR page and QR image", async ({ page }) => {
   await adminLogin(page);
   await page.goto("/admin/qr");
-  await expect(page.locator("main svg")).toHaveCount(5);
+  await expect(page.locator("main svg")).toHaveCount(10); // รถขนส่ง 5 คัน × (ใช้รถ + เติมน้ำมัน)
   await expect(page.getByText(/\/v\/v1$/)).toBeVisible();
   const r = await page.request.get("/api/qr/v1");
   expect(r.status()).toBe(200);
@@ -285,7 +299,7 @@ test("QR page and QR image", async ({ page }) => {
 test("admin trip edit validates and saves", async ({ page }) => {
   await adminLogin(page);
   await page.goto("/admin/vehicles/v1");
-  await page.locator("tbody tr").first().getByRole("link", { name: "แก้ไข" }).click();
+  await page.locator(TRIP_ROWS).first().getByRole("link", { name: "แก้ไข" }).click();
   await page.fill('input[name="mileageEnd"]', "9000");
   await page.getByRole("button", { name: /บันทึก/ }).first().click();
   await expect(page.getByText("เลขไมล์หลังเดินทางน้อยกว่าก่อนเดินทาง")).toBeVisible();
@@ -298,14 +312,14 @@ test("admin trip edit validates and saves", async ({ page }) => {
   await page.fill('input[name="destination"]', "แก้ไขแล้ว");
   await page.getByRole("button", { name: /บันทึก/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/vehicles\/v1\?month=/);
-  await expect(page.locator("tbody tr").first()).toContainText("แก้ไขแล้ว");
-  await expect(page.locator("tbody tr").first()).toContainText("60");
+  await expect(page.locator(TRIP_ROWS).first()).toContainText("แก้ไขแล้ว");
+  await expect(page.locator(TRIP_ROWS).first()).toContainText("60");
 });
 
 test("admin clears a warning", async ({ page }) => {
   await adminLogin(page);
   await page.goto("/admin/vehicles/v1");
-  await page.locator("tbody tr").nth(1).getByRole("link", { name: "แก้ไข" }).click();
+  await page.locator(TRIP_ROWS).nth(1).getByRole("link", { name: "แก้ไข" }).click();
   await page.locator('input[name="clearWarnings"]').check();
   await page.getByRole("button", { name: /บันทึก/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/vehicles\/v1\?month=/);
@@ -321,7 +335,7 @@ test("deleting an employee keeps their trip history", async ({ page }) => {
   await row.getByRole("button", { name: "ลบ" }).click();
   await expect(page.getByText("E102", { exact: true })).toHaveCount(0);
   await page.goto("/admin/vehicles/v1");
-  await expect(page.locator("tbody")).toContainText("สมศักดิ์ ยาวมากเป็นพิเศษ");
+  await expect(page.locator('[data-table="trips"] tbody')).toContainText("สมศักดิ์ ยาวมากเป็นพิเศษ");
 });
 
 test("cancelling the delete confirm keeps the employee", async ({ page }) => {
@@ -351,11 +365,11 @@ test("deleted employee code can be re-added and can borrow", async ({ page, brow
 test("admin deletes a trip", async ({ page }) => {
   await adminLogin(page);
   await page.goto("/admin/vehicles/v1");
-  await page.locator("tbody tr").nth(1).getByRole("link", { name: "แก้ไข" }).click();
+  await page.locator(TRIP_ROWS).nth(1).getByRole("link", { name: "แก้ไข" }).click();
   page.on("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "ลบรายการนี้" }).click();
   await expect(page).toHaveURL(/\/admin\/vehicles\/v1/);
-  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator(TRIP_ROWS)).toHaveCount(1);
 });
 
 test("logout ends the session", async ({ page }) => {

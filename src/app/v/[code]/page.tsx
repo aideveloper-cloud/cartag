@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { formatDate, formatTime } from "@/lib/format";
 import { getOpenTrip, getVehicleByCode } from "@/lib/trips";
+import { categoryLabel } from "@/lib/vehicles";
 import { EndTripForm, StartTripForm } from "./TripForms";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ export default async function ScanPage({ params }: { params: Promise<{ code: str
       <header className="mb-4 rounded-xl bg-yellow-300 p-4 text-center">
         <p className="text-sm text-gray-700">ทะเบียนรถ</p>
         <h1 className="text-3xl font-bold">{vehicle.plate}</h1>
+        <p className="mt-1 text-sm text-gray-700">
+          {categoryLabel(vehicle.group.category)} · กลุ่ม{vehicle.group.name}
+        </p>
       </header>
 
       <section className="rounded-xl bg-white p-5 shadow-sm">

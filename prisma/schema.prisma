@@ -7,46 +7,92 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ประเภทรถ — แต่ละประเภทมีเมนูของตัวเองในหน้าแอดมิน, รถภายในบริษัทมี QR เติมน้ำมันเพิ่ม
+enum VehicleCategory {
+  TRANSPORT // รถขนส่ง
+  INTERNAL // รถภายในบริษัท
+}
+
+// กลุ่มรถ (ขนส่ง / ส่วนกลาง / ช่างทีมเซอร์วิส) — ใช้ดึงรีพอร์ตตามกลุ่ม
+// ตั้งต้นใน migration 3_vehicle_groups_fuel (id คงที่: g_transport, g_pool, g_service)
+model VehicleGroup {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  category  VehicleCategory
+  sortOrder Int             @default(0)
+  createdAt DateTime        @default(now())
+  vehicles  Vehicle[]
+}
+
 model Vehicle {
-  id        String   @id @default(cuid())
-  plate     String   @unique // ทะเบียนรถ เช่น "2 ฒพ 2523"
-  code      String   @unique // รหัสสั้นที่ฝังใน QR เช่น "v1" — รถใหม่ได้เลขจาก sequence vehicle_code_seq (migration 2)
-  createdAt DateTime @default(now())
+  id        String       @id @default(cuid())
+  plate     String       @unique // ทะเบียนรถ เช่น "2 ฒพ 2523"
+  code      String       @unique // รหัสสั้นที่ฝังใน QR เช่น "v1" — รถใหม่ได้เลขจาก sequence vehicle_code_seq (migration 2)
+  groupId   String // ประเภทรถดูจากกลุ่ม (group.category)
+  group     VehicleGroup @relation(fields: [groupId], references: [id])
+  createdAt DateTime     @default(now())
   trips     Trip[]
+  fuelLogs  FuelLog[]
 }
 
 model Employee {
-  id         String   @id @default(cuid())
-  code       String   @unique // รหัสพนักงาน
+  id         String    @id @default(cuid())
+  code       String    @unique // รหัสพนักงาน
   name       String
   department String
-  active     Boolean  @default(true) // ปิดใช้งานชั่วคราว (ลบถาวรได้ — รายการใช้รถเก็บชื่อ/แผนกไว้เอง)
-  createdAt  DateTime @default(now())
+  active     Boolean   @default(true) // ปิดใช้งานชั่วคราว (ลบถาวรได้ — รายการใช้รถเก็บชื่อ/แผนกไว้เอง)
+  createdAt  DateTime  @default(now())
   trips      Trip[]
+  fuelLogs   FuelLog[]
 }
 
 model Trip {
-  id            String    @id @default(cuid())
-  vehicleId     String
-  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id])
-  departedAt    DateTime  @default(now()) // วันที่ + เวลาออกเดินทาง
-  origin        String    // ออกเดินทางจาก
-  employeeId    String?
-  employee      Employee? @relation(fields: [employeeId], references: [id])
-  driver        String    // ผู้ใช้รถ (เก็บชื่อ ณ ตอนยืม เผื่อพนักงานเปลี่ยนชื่อ/แผนกภายหลัง)
-  department    String    @default("") // แผนก
-  destination   String    // สถานที่ไป
-  mileageStart  Int       // เลขไมล์ก่อนเดินทาง
-  mileageEnd    Int?      // เลขไมล์หลังเดินทาง (null = ยังไม่คืนรถ)
-  returnedAt    DateTime? // วันที่ + เวลาคืนรถ
-  photoStart    String?   // id ของ Photo: รูปเลขไมล์ตอนออก
-  photoEnd      String?   // id ของ Photo: รูปเลขไมล์ตอนคืน
-  warnings      String?   // คำเตือนเลขไมล์ที่ผู้ใช้กดยืนยันผ่าน ให้แอดมินตรวจ
-  selfie        String?   // id ของ Photo: รูปหน้าผู้ยืม (ลบอัตโนมัติเมื่อครบ SELFIE_RETENTION_DAYS)
-  createdAt     DateTime  @default(now())
+  id           String    @id @default(cuid())
+  vehicleId    String
+  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
+  departedAt   DateTime  @default(now()) // วันที่ + เวลาออกเดินทาง
+  origin       String // ออกเดินทางจาก
+  employeeId   String?
+  employee     Employee? @relation(fields: [employeeId], references: [id])
+  driver       String // ผู้ใช้รถ (เก็บชื่อ ณ ตอนยืม เผื่อพนักงานเปลี่ยนชื่อ/แผนกภายหลัง)
+  department   String    @default("") // แผนก
+  destination  String // สถานที่ไป
+  mileageStart Int // เลขไมล์ก่อนเดินทาง
+  mileageEnd   Int? // เลขไมล์หลังเดินทาง (null = ยังไม่คืนรถ)
+  returnedAt   DateTime? // วันที่ + เวลาคืนรถ
+  photoStart   String? // id ของ Photo: รูปเลขไมล์ตอนออก
+  photoEnd     String? // id ของ Photo: รูปเลขไมล์ตอนคืน
+  warnings     String? // คำเตือนเลขไมล์ที่ผู้ใช้กดยืนยันผ่าน ให้แอดมินตรวจ
+  selfie       String? // id ของ Photo: รูปหน้าผู้ยืม (ลบอัตโนมัติเมื่อครบ SELFIE_RETENTION_DAYS)
+  createdAt    DateTime  @default(now())
+  fuelLogs     FuelLog[]
+  // + unique index "Trip_one_open_per_vehicle" (vehicleId) WHERE mileageEnd IS NULL — อยู่ใน migration 1_one_open_trip_per_vehicle
 
   @@index([vehicleId, departedAt])
-  // + unique index "Trip_one_open_per_vehicle" (vehicleId) WHERE mileageEnd IS NULL — อยู่ใน migration 1_one_open_trip_per_vehicle
+}
+
+// บันทึกเติมน้ำมัน (เฉพาะรถภายในบริษัท) — กรอกจาก QR เติมน้ำมัน /f/{code}
+model FuelLog {
+  id           String    @id @default(cuid())
+  vehicleId    String
+  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id])
+  tripId       String? // รายการใช้รถที่เปิดอยู่ตอนเติม (ถ้ามี)
+  trip         Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  employeeId   String?
+  employee     Employee? @relation(fields: [employeeId], references: [id])
+  driver       String // ชื่อผู้เติม ณ ตอนบันทึก (แบบเดียวกับ Trip)
+  department   String    @default("")
+  billDate     DateTime // วันที่บนบิล (เที่ยงคืนเวลาไทย) — ต่างจาก createdAt เมื่อบิลมาช้า/ข้ามเดือน
+  amount       Decimal   @db.Decimal(10, 2) // บาท
+  liters       Decimal   @db.Decimal(10, 2)
+  mileage      Int // เลขไมล์ตอนเติม
+  photoCar     String // id ของ Photo: รูปหน้ารถ
+  photoMileage String // id ของ Photo: รูปเลขไมล์
+  photoLive    String // id ของ Photo: รูปถ่ายสดตอนเติม
+  photoBill    String // id ของ Photo: รูปบิล
+  createdAt    DateTime  @default(now())
+
+  @@index([vehicleId, billDate])
 }
 
 // เก็บรูปในฐานข้อมูล (ย่อจากมือถือแล้ว ~30–150KB/รูป) เพื่อให้ backup ของ Postgres ครอบคลุมรูปด้วย

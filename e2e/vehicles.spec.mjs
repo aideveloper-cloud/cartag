@@ -34,7 +34,7 @@ test("admin adds a car: plate is tidied and gets the next QR code", async ({ pag
   await page.goto("/admin");
   await expect(page.locator('main a[href^="/admin/vehicles/v"]').last()).toContainText("9 กก 9999");
   await page.goto("/admin/qr");
-  await expect(page.locator("main svg")).toHaveCount(6);
+  await expect(page.locator("main svg")).toHaveCount(12); // 6 คัน × (ใช้รถ + เติมน้ำมัน)
   const scan = await request.get("/v/v6");
   expect(scan.status()).toBe(200);
   expect(await scan.text()).toContain("9 กก 9999");

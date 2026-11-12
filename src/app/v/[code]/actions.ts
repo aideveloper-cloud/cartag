@@ -1,28 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { MAX_MILEAGE, MAX_TRIP_KM } from "@/lib/config";
+import { MAX_TRIP_KM } from "@/lib/config";
 import { isUniqueViolation, prisma } from "@/lib/db";
+import { type FormState, hasFile, km, mileage, text } from "@/lib/form";
 import { deletePhotos, purgeOldSelfies, savePhoto } from "@/lib/photos";
 import { findActiveEmployee, getLastMileage, getOpenTrip, getVehicleByCode } from "@/lib/trips";
-
-// warning = ข้อมูลผิดปกติแต่อาจถูกต้อง ผู้ใช้กดยืนยันแล้วส่งซ้ำพร้อม confirm=1 ได้
-export type FormState = { error?: string; warning?: string };
-
-function text(form: FormData, key: string) {
-  return String(form.get(key) ?? "").trim();
-}
-
-function mileage(form: FormData, key: string) {
-  const raw = text(form, key).replace(/,/g, "");
-  if (!/^\d+$/.test(raw)) return null;
-  const n = Number(raw);
-  return n <= MAX_MILEAGE ? n : null;
-}
-
-const km = (n: number) => n.toLocaleString("en-US");
-
-const hasFile = (v: FormDataEntryValue | null) => v instanceof File && v.size > 0;
 
 export async function lookupEmployee(code: string) {
   const emp = await findActiveEmployee(code);

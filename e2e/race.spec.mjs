@@ -1,5 +1,8 @@
 import { test, expect, devices } from "@playwright/test";
 
+// แถวในตารางการใช้รถ (หน้ารถมีตารางเติมน้ำมันอยู่ด้วย)
+const TRIP_ROWS = '[data-table="trips"] tbody tr';
+
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
@@ -67,7 +70,7 @@ test("four phones racing to return the same car", async ({ browser }) => {
   await page.click("button");
   await page.waitForURL(/\/admin$/);
   await page.goto("/admin/vehicles/v4");
-  await expect(page.locator("tbody tr")).toHaveCount(1);
-  await expect(page.locator("tbody tr td").nth(9)).toHaveText(km[0]);
+  await expect(page.locator(TRIP_ROWS)).toHaveCount(1);
+  await expect(page.locator(`${TRIP_ROWS} td`).nth(9)).toHaveText(km[0]);
   await ctx.close();
 });
