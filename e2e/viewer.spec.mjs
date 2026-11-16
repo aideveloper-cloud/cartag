@@ -53,7 +53,7 @@ test.describe("viewer enabled", () => {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await login(page, VIEWER_PW);
-    await expect(page.getByRole("status")).toHaveText("👁️ ดูอย่างเดียว");
+    await expect(page.getByRole("status")).toHaveText("Viewer");
     await expect(page.getByText("2 ฒพ 2523")).toBeVisible();
 
     await page.goto("/admin/vehicles");
