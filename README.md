@@ -25,6 +25,14 @@
 - หน้าพิมพ์ QR: รถทุกคันได้ QR คู่ (ใช้รถ / เติมน้ำมัน) ทุกการ์ดและไฟล์ PNG ที่ดาวน์โหลดมีทะเบียน
 - **รายงาน** (`/admin/reports`): ติ๊กทั้งกลุ่มหรือหลายทะเบียน + ช่วงเวลา → สรุปต่อคัน, การเติมน้ำมัน (ตามวันที่บนบิล, ติดป้าย "ข้ามเดือน" เมื่อบันทึกคนละเดือนกับบิล), ตารางการใช้รถแยกคัน และ Excel ไฟล์เดียว (ชีต สรุป → เติมน้ำมัน → คันละชีต)
 
+## สิทธิ์หน้าแอดมิน
+- ช่องรหัสผ่านเดียวที่ `/admin/login` — ใส่ `ADMIN_PASSWORD` = **แอดมิน** (ทำได้ทุกอย่าง), ใส่ `VIEWER_PASSWORD` = **ดูอย่างเดียว**
+- ดูอย่างเดียว: เห็นหน้ารถ ตาราง รายงาน พิมพ์ QR ดูรูป และดาวน์โหลด Excel ได้ แต่ไม่มีปุ่ม/ฟอร์มเพิ่ม แก้ ลบ นำเข้า และมีป้าย "โหมดดูอย่างเดียว" ทุกหน้า
+  - ทุก server action ที่เขียนข้อมูลเรียก `assertAdmin()` (รับเฉพาะแอดมิน) — ยิง action ตรง ๆ ด้วยคุกกี้ viewer ก็ถูกปฏิเสธ
+- คุกกี้เก็บ hash ของรหัสตาม role (`src/lib/token.ts`) — แก้คุกกี้ viewer ให้เป็นแอดมินเองไม่ได้ถ้าไม่รู้รหัสแอดมิน
+- ไม่ตั้ง `VIEWER_PASSWORD` (หรือตั้งเหมือนรหัสแอดมิน) = ไม่มี viewer ระบบทำงานแบบเดิม · เปลี่ยนรหัสใด = คุกกี้ของ role นั้นใช้ไม่ได้ทันที (ต้องล็อกอินใหม่)
+- หน้าสแกนของคนขับ (`/v`, `/f`) ไม่ต้องล็อกอินเหมือนเดิม
+
 ## PDPA
 - รูปหน้าผู้ยืมใช้เพื่อยืนยันตัวผู้ใช้รถเท่านั้น ไม่มีการประมวลผลใบหน้า
 - ลบอัตโนมัติเมื่อครบ `SELFIE_RETENTION_DAYS` (ค่าเริ่มต้น 180 วัน)
@@ -51,7 +59,7 @@ npm run dev                 # http://localhost:3000/admin
    docker exec -it kgf-postgres psql -U kgf -c "CREATE USER cartag WITH PASSWORD '<รหัสยาวๆ>';"
    docker exec -it kgf-postgres psql -U kgf -c "CREATE DATABASE cartag OWNER cartag;"
    ```
-2. บนเครื่อง dev: `cp .env.server.example .env.server` แล้วใส่รหัส DB, `ADMIN_PASSWORD` (ไฟล์นี้ไม่ถูก commit)
+2. บนเครื่อง dev: `cp .env.server.example .env.server` แล้วใส่รหัส DB, `ADMIN_PASSWORD` และ `VIEWER_PASSWORD` ถ้าต้องการผู้ดูอย่างเดียว (ไฟล์นี้ไม่ถูก commit)
 3. `./kgf-deploy.sh deploy cartag 8003` — container ตั้งตารางและเพิ่มรถให้เองตอนเริ่ม
 4. Cloudflare Zero Trust → Tunnels → tunnel ที่รันบน ServerKG → **Public Hostname**:
    `cartag.kgarden.co.th` → `HTTP` · `localhost:8003`
@@ -79,6 +87,7 @@ git ls-files -co --exclude-standard | grep -v '^e2e/' | tar -cf - -T - | ssh ser
 npm run e2e:new
 ```
 - ต้องมี `.env.e2e` (ไม่ commit): `BASE=http://192.168.1.10:8004` และ `ADMIN_PW=<ADMIN_PASSWORD ใน ~/server/apps/cartag-test/.env>`
+  - เทส viewer: ใส่ `VIEWER_PW=<VIEWER_PASSWORD ของ cartag-test>` ด้วย (server ต้องตั้ง `VIEWER_PASSWORD` ค่าเดียวกัน) — ไม่ใส่ = `e2e/viewer.spec.mjs` เทสกรณีปิด viewer แทน (server ต้องไม่ตั้ง `VIEWER_PASSWORD`) ควรรันทั้งสองแบบ
 - cartag-test ใช้ `kgf/cartag:latest` → เทสเวอร์ชันที่ `./kgf-deploy.sh deploy` ล่าสุด
 - ลบทิ้ง: `docker compose -p cartag-test down` ใน `~/server/apps/cartag-test` แล้ว `DROP DATABASE cartag_test; DROP USER cartag_test;`
 
@@ -88,6 +97,7 @@ npm run e2e:new
 | `BASE_URL` | URL ที่ฝังใน QR | `http://localhost:3000` |
 | `DATABASE_URL` | Postgres | – |
 | `ADMIN_PASSWORD` | รหัสผ่านแอดมิน | – |
+| `VIEWER_PASSWORD` | รหัสผ่านผู้ดูอย่างเดียว (ต้องไม่ซ้ำรหัสแอดมิน) | ไม่ตั้ง = ไม่มี viewer |
 | `MAX_TRIP_KM` | ระยะทางที่ถือว่าผิดปกติ | 1000 |
 | `SELFIE_RETENTION_DAYS` | เก็บรูปหน้ากี่วัน | 180 |
 
