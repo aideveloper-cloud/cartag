@@ -1,6 +1,9 @@
 import { readPhoto } from "@/lib/photos";
+import { readerOnly } from "@/lib/admin";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ name: string }> }) {
+  const denied = await readerOnly();
+  if (denied) return denied;
   const { name } = await params;
   const data = await readPhoto(name);
   if (!data) return new Response("Not found", { status: 404 });

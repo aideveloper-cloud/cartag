@@ -1,10 +1,13 @@
 import ExcelJS from "exceljs";
+import { readerOnly } from "@/lib/admin";
 import { addFuelSheet, addTripSheet, periodSuffix, xlsxResponse } from "@/lib/excel";
 import { resolvePeriod } from "@/lib/format";
 import { getFuelInRange, getTripsInRange, getVehicleByCode } from "@/lib/trips";
 
 // Excel ของรถหนึ่งคัน: ชีตแบบฟอร์มการใช้รถ + ชีตเติมน้ำมัน
 export async function GET(req: Request, { params }: { params: Promise<{ code: string }> }) {
+  const denied = await readerOnly();
+  if (denied) return denied;
   const { code } = await params;
   const q = new URL(req.url).searchParams;
   const period = resolvePeriod({ month: q.get("month"), from: q.get("from"), to: q.get("to") });

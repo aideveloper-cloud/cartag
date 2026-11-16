@@ -1,9 +1,12 @@
 import ExcelJS from "exceljs";
+import { readerOnly } from "@/lib/admin";
 import { addFuelSheet, addSummarySheet, addTripSheet, periodSuffix, xlsxResponse } from "@/lib/excel";
 import { loadReport, reportQuery } from "@/lib/report";
 
 // Excel รีพอร์ตหลายคันไฟล์เดียว: สรุป → แต่ละคัน (ชีตการใช้รถ + ชีตเติมน้ำมัน "น้ำมัน <ทะเบียน>")
 export async function GET(req: Request) {
+  const denied = await readerOnly();
+  if (denied) return denied;
   const { codes, period } = reportQuery(new URL(req.url).searchParams);
   if (codes.length === 0) return new Response("เลือกรถอย่างน้อย 1 คัน", { status: 400 });
   const { vehicles, fuel, summary } = await loadReport(codes, period);
