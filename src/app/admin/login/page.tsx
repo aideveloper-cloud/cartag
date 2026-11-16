@@ -8,7 +8,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <form action={action} className="w-full max-w-sm space-y-4 rounded-xl bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-bold">เข้าสู่ระบบผู้ดูแล</h1>
+        {/* หน้าเดียวกันทั้งแอดมินและผู้ดูอย่างเดียว — role ขึ้นกับรหัสที่ใส่ */}
+        <h1 className="text-xl font-bold">เข้าสู่ระบบ — ระบบบันทึกการใช้รถ</h1>
         <input
           type="password"
           name="password"

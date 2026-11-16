@@ -1,14 +1,22 @@
 import { currentRole } from "@/lib/admin";
 
-// ป้ายบอกโหมดดูอย่างเดียวทุกหน้าแอดมิน (หน้า login ไม่มี role → ไม่แสดง)
+// ป้ายกลมมุมขวาบนทุกหน้าแอดมิน บอกว่าล็อกอินเป็น role ไหน (หน้า login ไม่มี role → ไม่แสดง)
+const BADGE = {
+  admin: { text: "แอดมิน", className: "bg-gray-900 text-white" },
+  viewer: { text: "👁️ ดูอย่างเดียว", className: "bg-sky-100 text-sky-900 ring-1 ring-sky-300" },
+} as const;
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const viewer = (await currentRole()) === "viewer";
+  const role = await currentRole();
+  const badge = role ? BADGE[role] : null;
   return (
     <>
-      {viewer && (
-        <p role="status" className="no-print bg-sky-100 px-4 py-2 text-center text-sm font-medium text-sky-900">
-          👁️ โหมดดูอย่างเดียว — ดูข้อมูลและดาวน์โหลดรายงานได้ แต่เพิ่ม แก้ไข หรือลบไม่ได้
-        </p>
+      {badge && (
+        <div className="no-print flex justify-end px-4 pt-3">
+          <span role="status" className={`rounded-full px-3 py-1 text-xs font-medium ${badge.className}`}>
+            {badge.text}
+          </span>
+        </div>
       )}
       {children}
     </>

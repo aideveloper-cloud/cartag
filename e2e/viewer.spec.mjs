@@ -53,7 +53,7 @@ test.describe("viewer enabled", () => {
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await login(page, VIEWER_PW);
-    await expect(page.getByRole("status")).toContainText("โหมดดูอย่างเดียว");
+    await expect(page.getByRole("status")).toHaveText("👁️ ดูอย่างเดียว");
     await expect(page.getByText("2 ฒพ 2523")).toBeVisible();
 
     await page.goto("/admin/vehicles");
@@ -161,7 +161,7 @@ test.describe("viewer enabled", () => {
     await adminCtx.close();
   });
 
-  test("viewer cookie cannot be edited into admin; admin still has full controls and no banner", async ({ page, context, baseURL }) => {
+  test("viewer cookie cannot be edited into admin; admin still has full controls and the admin badge", async ({ page, context, baseURL }) => {
     await login(page, VIEWER_PW);
     const host = new URL(baseURL).hostname;
     for (const value of ["admin", sha256(`qrtracker:${VIEWER_PW}`), sha256("qrtracker:")]) {
@@ -173,7 +173,7 @@ test.describe("viewer enabled", () => {
 
     await context.clearCookies();
     await login(page, process.env.ADMIN_PW);
-    await expect(page.getByRole("status")).toHaveCount(0);
+    await expect(page.getByRole("status")).toHaveText("แอดมิน");
     await page.goto("/admin/vehicles");
     await expect(page.getByRole("button", { name: "เพิ่มรถ" })).toBeVisible();
     await page.goto("/admin/vehicles/v1");
@@ -201,7 +201,7 @@ test.describe("viewer disabled (no VIEWER_PASSWORD)", () => {
     }
     await context.clearCookies();
     await login(page, process.env.ADMIN_PW);
-    await expect(page.getByRole("status")).toHaveCount(0);
+    await expect(page.getByRole("status")).toHaveText("แอดมิน");
     await page.goto("/admin/vehicles");
     await expect(page.getByRole("button", { name: "เพิ่มรถ" })).toBeVisible();
   });
