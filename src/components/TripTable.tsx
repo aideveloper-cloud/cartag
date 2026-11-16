@@ -10,7 +10,8 @@ export const tripKm = (trips: Pick<Trip, "mileageStart" | "mileageEnd">[]) =>
   trips.reduce((sum, t) => sum + (t.mileageEnd !== null ? t.mileageEnd - t.mileageStart : 0), 0);
 
 // ตารางตามแบบฟอร์ม "ตารางรายละเอียดการเดินทางและการใช้รถ" (คอลัมน์รูป/แก้ไขไม่ถูกพิมพ์)
-export default function TripTable({ trips }: { trips: Trip[] }) {
+// editable=false (viewer): ไม่มีลิงก์แก้ไข
+export default function TripTable({ trips, editable = true }: { trips: Trip[]; editable?: boolean }) {
   return (
     <table data-table="trips" className="w-full border-collapse text-center text-sm">
       <thead>
@@ -58,9 +59,11 @@ export default function TripTable({ trips }: { trips: Trip[] }) {
             </td>
             <td className={`${td} no-print whitespace-nowrap`}>
               {t.warnings && <span className="mr-1" aria-label="มีคำเตือน">⚠️</span>}
-              <Link href={`/admin/trips/${t.id}`} className="text-blue-600">
-                แก้ไข
-              </Link>
+              {editable && (
+                <Link href={`/admin/trips/${t.id}`} className="text-blue-600">
+                  แก้ไข
+                </Link>
+              )}
             </td>
           </tr>
         ))}

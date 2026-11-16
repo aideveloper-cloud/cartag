@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ReadOnlyFields from "@/components/ReadOnlyFields";
+import { canEdit } from "@/lib/admin";
 import { prisma } from "@/lib/db";
 import { dayOf, formatDate, formatTime, monthOf, today } from "@/lib/format";
 import EditForm from "./EditForm";
@@ -11,6 +13,7 @@ export default async function EditFuelPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const fuel = await prisma.fuelLog.findUnique({ where: { id }, include: { vehicle: true, employee: true } });
   if (!fuel) notFound();
+  const editable = await canEdit();
 
   const photos = [
     { name: fuel.photoCar, label: "รูปหน้ารถ" },
@@ -25,7 +28,7 @@ export default async function EditFuelPage({ params }: { params: Promise<{ id: s
         ← กลับ
       </Link>
       <h1 className="text-2xl font-bold">
-        แก้ไขการเติมน้ำมัน · <span className="bg-yellow-300 px-2">{fuel.vehicle.plate}</span>
+        {editable ? "แก้ไขการเติมน้ำมัน" : "รายละเอียดการเติมน้ำมัน"} · <span className="bg-yellow-300 px-2">{fuel.vehicle.plate}</span>
       </h1>
       <p className="text-sm text-gray-500">
         บันทึกเมื่อ {formatDate(fuel.createdAt)} {formatTime(fuel.createdAt)}
@@ -43,18 +46,31 @@ export default async function EditFuelPage({ params }: { params: Promise<{ id: s
         </div>
       )}
       <section className="rounded-xl bg-white p-4 shadow-sm">
-        <EditForm
-          today={today()}
-          fuel={{
-            id: fuel.id,
-            driver: fuel.driver,
-            department: fuel.department,
-            billDate: dayOf(fuel.billDate),
-            amount: fuel.amount.toFixed(2),
-            liters: fuel.liters.toFixed(2),
-            mileage: fuel.mileage,
-          }}
-        />
+        {!editable ? (
+          <ReadOnlyFields
+            fields={[
+              ["ผู้เติม", fuel.driver],
+              ["แผนก", fuel.department],
+              ["วันที่บนบิล", formatDate(fuel.billDate)],
+              ["เลขไมล์ตอนเติม", fuel.mileage.toLocaleString()],
+              ["จำนวนลิตร", fuel.liters.toFixed(2)],
+              ["จำนวนเงิน (บาท)", fuel.amount.toFixed(2)],
+            ]}
+          />
+        ) : (
+          <EditForm
+            today={today()}
+            fuel={{
+              id: fuel.id,
+              driver: fuel.driver,
+              department: fuel.department,
+              billDate: dayOf(fuel.billDate),
+              amount: fuel.amount.toFixed(2),
+              liters: fuel.liters.toFixed(2),
+              mileage: fuel.mileage,
+            }}
+          />
+        )}
       </section>
     </main>
   );

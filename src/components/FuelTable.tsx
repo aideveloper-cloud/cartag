@@ -18,7 +18,8 @@ export function fuelTotals(rows: Pick<FuelLog, "amount" | "liters">[]) {
 }
 
 // ตารางการเติมน้ำมันของรถหนึ่งคัน (เรียงตามวันที่บนบิล) — ใช้ใน FuelSection
-export default function FuelTable({ rows }: { rows: FuelLog[] }) {
+// editable=false (viewer): ไม่มีลิงก์แก้ไข
+export default function FuelTable({ rows, editable = true }: { rows: FuelLog[]; editable?: boolean }) {
   const total = fuelTotals(rows);
   return (
     <table data-table="fuel" className="w-full border-collapse text-center text-sm">
@@ -60,9 +61,11 @@ export default function FuelTable({ rows }: { rows: FuelLog[] }) {
               <PhotoLink name={f.photoBill} label="บิล" />
             </td>
             <td className={`${td} no-print whitespace-nowrap`}>
-              <Link href={`/admin/fuel/${f.id}`} className="text-blue-600">
-                แก้ไข
-              </Link>
+              {editable && (
+                <Link href={`/admin/fuel/${f.id}`} className="text-blue-600">
+                  แก้ไข
+                </Link>
+              )}
             </td>
           </tr>
         ))}

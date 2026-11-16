@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import FuelSection from "@/components/FuelSection";
 import PeriodForm from "@/components/PeriodForm";
 import TripTable from "@/components/TripTable";
+import { canEdit } from "@/lib/admin";
 import { periodLabel, resolvePeriod } from "@/lib/format";
 import { getFuelInRange, getTripsInRange, getVehicleByCode } from "@/lib/trips";
 import { categoryKey, categoryLabel } from "@/lib/vehicles";
@@ -23,6 +24,7 @@ export default async function VehicleLogPage({
   if (!vehicle) notFound();
   const trips = await getTripsInRange(vehicle.id, period);
   const fuel = await getFuelInRange([vehicle.id], period);
+  const editable = await canEdit();
 
   return (
     <main className="mx-auto max-w-6xl p-4">
@@ -37,12 +39,17 @@ export default async function VehicleLogPage({
         >
           ดาวน์โหลด Excel
         </a>
-        <a href={`/v/${code}`} className="rounded-lg border px-4 py-2" target="_blank">
-          เปิดหน้าสแกน
-        </a>
-        <a href={`/f/${code}`} className="rounded-lg border px-4 py-2" target="_blank">
-          เปิดหน้าเติมน้ำมัน
-        </a>
+        {/* หน้าสแกน/เติมน้ำมันใช้บันทึกข้อมูล — viewer ไม่เห็นลิงก์ */}
+        {editable && (
+          <>
+            <a href={`/v/${code}`} className="rounded-lg border px-4 py-2" target="_blank">
+              เปิดหน้าสแกน
+            </a>
+            <a href={`/f/${code}`} className="rounded-lg border px-4 py-2" target="_blank">
+              เปิดหน้าเติมน้ำมัน
+            </a>
+          </>
+        )}
       </div>
 
       <div className="overflow-x-auto bg-white p-4">
@@ -51,13 +58,13 @@ export default async function VehicleLogPage({
           <span>{periodLabel(period)}</span>
           <span className="bg-yellow-300 px-3 font-bold">ทะเบียนรถ {vehicle.plate}</span>
         </div>
-        <TripTable trips={trips} />
+        <TripTable trips={trips} editable={editable} />
         <p className="no-print mt-2 text-xs text-gray-500">
           {categoryLabel(vehicle.group.category)} · กลุ่ม{vehicle.group.name}
         </p>
       </div>
 
-      <FuelSection id="fuel" className="mt-6" plate={vehicle.plate} period={period} rows={fuel} />
+      <FuelSection id="fuel" className="mt-6" plate={vehicle.plate} period={period} rows={fuel} editable={editable} />
     </main>
   );
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ReadOnlyFields from "@/components/ReadOnlyFields";
+import { canEdit } from "@/lib/admin";
 import { prisma } from "@/lib/db";
-import { monthOf, toLocalInput } from "@/lib/format";
+import { formatDate, formatReturn, formatTime, monthOf, toLocalInput } from "@/lib/format";
 import EditForm from "./EditForm";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +12,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const trip = await prisma.trip.findUnique({ where: { id }, include: { vehicle: true, employee: true } });
   if (!trip) notFound();
+  const editable = await canEdit();
 
   const photos = [
     { name: trip.selfie, label: "รูปหน้าผู้ยืม" },
@@ -23,7 +26,7 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
         ← กลับ
       </Link>
       <h1 className="text-2xl font-bold">
-        แก้ไขรายการ · <span className="bg-yellow-300 px-2">{trip.vehicle.plate}</span>
+        {editable ? "แก้ไขรายการ" : "รายละเอียดรายการ"} · <span className="bg-yellow-300 px-2">{trip.vehicle.plate}</span>
       </h1>
       {trip.employee && (
         <p className="text-sm text-gray-500">
@@ -42,20 +45,36 @@ export default async function EditTripPage({ params }: { params: Promise<{ id: s
         </div>
       )}
       <section className="rounded-xl bg-white p-4 shadow-sm">
-        <EditForm
-          trip={{
-            id: trip.id,
-            driver: trip.driver,
-            department: trip.department,
-            origin: trip.origin,
-            destination: trip.destination,
-            departedAt: toLocalInput(trip.departedAt),
-            returnedAt: toLocalInput(trip.returnedAt),
-            mileageStart: trip.mileageStart,
-            mileageEnd: trip.mileageEnd,
-            warnings: trip.warnings,
-          }}
-        />
+        {!editable ? (
+          <ReadOnlyFields
+            fields={[
+              ["ผู้ใช้รถ", trip.driver],
+              ["แผนก", trip.department],
+              ["ออกเดินทางจาก", trip.origin],
+              ["สถานที่ไป", trip.destination],
+              ["วันที่/เวลาออก", `${formatDate(trip.departedAt)} ${formatTime(trip.departedAt)}`],
+              ["เวลาคืนรถ", formatReturn(trip.departedAt, trip.returnedAt) || "ยังไม่คืน"],
+              ["เลขไมล์ก่อนเดินทาง", trip.mileageStart.toLocaleString()],
+              ["เลขไมล์หลังเดินทาง", trip.mileageEnd?.toLocaleString() ?? "ยังไม่คืน"],
+              ["คำเตือน", trip.warnings ?? ""],
+            ]}
+          />
+        ) : (
+          <EditForm
+            trip={{
+              id: trip.id,
+              driver: trip.driver,
+              department: trip.department,
+              origin: trip.origin,
+              destination: trip.destination,
+              departedAt: toLocalInput(trip.departedAt),
+              returnedAt: toLocalInput(trip.returnedAt),
+              mileageStart: trip.mileageStart,
+              mileageEnd: trip.mileageEnd,
+              warnings: trip.warnings,
+            }}
+          />
+        )}
       </section>
     </main>
   );

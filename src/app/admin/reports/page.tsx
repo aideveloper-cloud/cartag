@@ -2,6 +2,7 @@ import Link from "next/link";
 import FuelSection from "@/components/FuelSection";
 import PeriodSelect from "@/components/PeriodSelect";
 import TripTable from "@/components/TripTable";
+import { canEdit } from "@/lib/admin";
 import { prisma } from "@/lib/db";
 import { periodLabel, periodPresets } from "@/lib/format";
 import { loadReport, reportQuery, reportSearch } from "@/lib/report";
@@ -25,6 +26,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     vehicles: vehicles.filter((v) => v.groupId === g.id).map((v) => ({ code: v.code, plate: v.plate })),
   }));
   const report = codes.length ? await loadReport(codes, period) : null;
+  const editable = await canEdit();
   const total = report?.summary.reduce(
     (s, r) => ({ trips: s.trips + r.trips, km: s.km + r.km, fills: s.fills + r.fills, liters: s.liters + r.liters, amount: s.amount + r.amount }),
     { trips: 0, km: 0, fills: 0, liters: 0, amount: 0 },
@@ -119,9 +121,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   <span>{periodLabel(period)}</span>
                   <span className="bg-yellow-300 px-3 font-bold">ทะเบียนรถ {v.plate}</span>
                 </div>
-                <TripTable trips={v.trips} />
+                <TripTable trips={v.trips} editable={editable} />
               </section>
-              <FuelSection plate={v.plate} period={period} rows={report.fuel.filter((f) => f.vehicleId === v.id)} />
+              <FuelSection plate={v.plate} period={period} rows={report.fuel.filter((f) => f.vehicleId === v.id)} editable={editable} />
             </div>
           ))}
         </>

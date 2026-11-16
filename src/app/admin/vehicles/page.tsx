@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CategoryTabs from "@/components/CategoryTabs";
+import { canEdit } from "@/lib/admin";
 import { prisma } from "@/lib/db";
 import { categoryFromParam, categoryKey, categoryLabel, getGroups, vehicleOrder } from "@/lib/vehicles";
 import { AddVehicleForm, VehicleRow } from "./Forms";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function VehiclesPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const category = categoryFromParam((await searchParams).type);
   const type = categoryKey(category);
+  const editable = await canEdit();
   const [allGroups, vehicles] = await Promise.all([
     getGroups(),
     prisma.vehicle.findMany({
@@ -29,13 +31,15 @@ export default async function VehiclesPage({ searchParams }: { searchParams: Pro
       <h1 className="text-2xl font-bold">รถ ({vehicles.length} คัน)</h1>
       <CategoryTabs path="/admin/vehicles" current={category} />
 
-      <section className="rounded-xl bg-white p-4 shadow-sm">
-        <h2 className="mb-2 font-bold">เพิ่ม{categoryLabel(category)}</h2>
-        <AddVehicleForm groups={groups} defaultGroup={defaultGroup} />
-        <p className="mt-2 text-sm text-gray-500">
-          เพิ่มแล้วไปที่ <Link href={`/admin/qr?type=${type}`} className="text-blue-600">พิมพ์ QR Code</Link> เพื่อพิมพ์ QR ติดรถ
-        </p>
-      </section>
+      {editable && (
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h2 className="mb-2 font-bold">เพิ่ม{categoryLabel(category)}</h2>
+          <AddVehicleForm groups={groups} defaultGroup={defaultGroup} />
+          <p className="mt-2 text-sm text-gray-500">
+            เพิ่มแล้วไปที่ <Link href={`/admin/qr?type=${type}`} className="text-blue-600">พิมพ์ QR Code</Link> เพื่อพิมพ์ QR ติดรถ
+          </p>
+        </section>
+      )}
 
       <section className="overflow-x-auto rounded-xl bg-white p-4 shadow-sm">
         <table className="w-full text-sm">
@@ -48,22 +52,37 @@ export default async function VehiclesPage({ searchParams }: { searchParams: Pro
             </tr>
           </thead>
           <tbody>
-            {vehicles.map((v) => (
-              <VehicleRow
-                key={v.id}
-                id={v.id}
-                plate={v.plate}
-                code={v.code}
-                groupId={v.groupId}
-                groups={groups}
-                trips={v._count.trips + v._count.fuelLogs}
-              />
-            ))}
+            {vehicles.map((v) =>
+              editable ? (
+                <VehicleRow
+                  key={v.id}
+                  id={v.id}
+                  plate={v.plate}
+                  code={v.code}
+                  groupId={v.groupId}
+                  groups={groups}
+                  trips={v._count.trips + v._count.fuelLogs}
+                />
+              ) : (
+                // viewer: แถวอ่านอย่างเดียว ไม่มีช่องแก้ทะเบียน/กลุ่ม และไม่มีปุ่มลบ
+                <tr key={v.id} className="border-b">
+                  <td className="py-2 font-mono">{v.code}</td>
+                  <td>
+                    {v.plate}
+                    <span className="ml-2 text-gray-500">· กลุ่ม{allGroups.find((g) => g.id === v.groupId)?.name}</span>
+                  </td>
+                  <td className="text-center text-gray-500">{v._count.trips + v._count.fuelLogs}</td>
+                  <td />
+                </tr>
+              ),
+            )}
           </tbody>
         </table>
-        <p className="mt-2 text-xs text-gray-500">
-          แก้ทะเบียน/ย้ายกลุ่มได้โดยไม่ต้องพิมพ์ QR ใหม่ · ย้ายไปกลุ่มของอีกประเภทแล้วรถจะไปอยู่ในแท็บนั้น · ลบได้เฉพาะรถที่ยังไม่มีประวัติการใช้
-        </p>
+        {editable && (
+          <p className="mt-2 text-xs text-gray-500">
+            แก้ทะเบียน/ย้ายกลุ่มได้โดยไม่ต้องพิมพ์ QR ใหม่ · ย้ายไปกลุ่มของอีกประเภทแล้วรถจะไปอยู่ในแท็บนั้น · ลบได้เฉพาะรถที่ยังไม่มีประวัติการใช้
+          </p>
+        )}
       </section>
     </main>
   );

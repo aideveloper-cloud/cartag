@@ -2,6 +2,7 @@ import Link from "next/link";
 import CategoryTabs from "@/components/CategoryTabs";
 import VehicleBoard from "./VehicleBoard";
 import { prisma } from "@/lib/db";
+import { canEdit } from "@/lib/admin";
 import { logout } from "@/lib/auth";
 import { formatDate, formatTime } from "@/lib/format";
 import { purgeOldSelfies } from "@/lib/photos";
@@ -13,6 +14,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const q = await searchParams;
   const category = categoryFromParam(q.type);
   const selecting = q.select === "1";
+  const editable = await canEdit();
   const type = categoryKey(category);
   const inCategory = { group: { category } };
 
@@ -64,7 +66,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       {employeeCount === 0 && (
         <p className="mb-4 rounded-lg bg-red-50 p-3 text-red-700">
-          ยังไม่มีพนักงานในระบบ จึงยังยืมรถไม่ได้ — <Link href="/admin/employees" className="underline">เพิ่มพนักงาน</Link>
+          ยังไม่มีพนักงานในระบบ จึงยังยืมรถไม่ได้
+          {editable && (
+            <>
+              {" "}— <Link href="/admin/employees" className="underline">เพิ่มพนักงาน</Link>
+            </>
+          )}
         </p>
       )}
       {flagged.length > 0 && (
@@ -85,7 +92,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       {vehicles.length === 0 && (
         <p className="rounded-xl bg-white p-6 text-center text-gray-500">
-          ยังไม่มีรถประเภทนี้ — <Link href={`/admin/vehicles?type=${type}`} className="text-blue-600 underline">เพิ่มรถ</Link>
+          ยังไม่มีรถประเภทนี้
+          {editable && (
+            <>
+              {" "}— <Link href={`/admin/vehicles?type=${type}`} className="text-blue-600 underline">เพิ่มรถ</Link>
+            </>
+          )}
         </p>
       )}
       <VehicleBoard

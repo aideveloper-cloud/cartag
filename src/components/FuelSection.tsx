@@ -9,12 +9,14 @@ export default function FuelSection({
   rows,
   id,
   className = "",
+  editable = true,
 }: {
   plate: string;
   period: Period;
   rows: FuelLog[];
   id?: string;
   className?: string;
+  editable?: boolean;
 }) {
   return (
     <section id={id} className={`overflow-x-auto bg-white p-4 ${className}`}>
@@ -23,7 +25,7 @@ export default function FuelSection({
         <span>{periodLabel(period)}</span>
         <span className="bg-yellow-300 px-3 font-bold">ทะเบียนรถ {plate}</span>
       </div>
-      <FuelTable rows={rows} />
+      <FuelTable rows={rows} editable={editable} />
     </section>
   );
 }
